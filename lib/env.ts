@@ -6,6 +6,7 @@ const serverSchema = z.object({
   ZITADEL_CLIENT_SECRET: z.string().min(1, "ZITADEL_CLIENT_SECRET is required"),
   NEXTAUTH_URL: z.string().url().optional(),
   NEXTAUTH_SECRET: z.string().min(1, "NEXTAUTH_SECRET is required"),
+  ZITADEL_LOGIN_PAT: z.string().optional(),
 });
 
 const clientSchema = z.object({
