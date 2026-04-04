@@ -11,7 +11,7 @@ import { ProjectCard } from "@/components/projects/project-card";
 import { projectApi } from "@/lib/api/projects";
 import { cn } from "@/lib/utils";
 
-type FilterType = "public" | "private" | "all";
+type FilterType = "public" | "mine" | "all";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -27,10 +27,10 @@ export default function HomePage() {
   } = useQuery({
     queryKey: ["projects", filter, session?.accessToken],
     queryFn: async () => {
-      const filterParam = filter === "all" ? undefined : filter === "private" ? "mine" : "public";
+      const filterParam = filter === "all" ? undefined : filter;
       return projectApi.list(0, 50, filterParam, session?.accessToken);
     },
-    enabled: status !== "loading" && !(filter === "private" && !isAuthenticated),
+    enabled: status !== "loading" && !(filter === "mine" && !isAuthenticated),
   });
 
   const projects = data?.items ?? [];
@@ -89,10 +89,10 @@ export default function HomePage() {
                 Public
               </button>
               <button
-                onClick={() => setFilter("private")}
+                onClick={() => setFilter("mine")}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  filter === "private"
+                  filter === "mine"
                     ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
@@ -135,7 +135,7 @@ export default function HomePage() {
           {/* Content */}
           <div className="mt-8">
             {/* My Projects tab login prompt for unauthenticated users */}
-            {filter === "private" && !isAuthenticated ? (
+            {filter === "mine" && !isAuthenticated ? (
               <div className="rounded-lg border border-slate-200 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-800">
                 <User className="mx-auto h-12 w-12 text-slate-400" />
                 <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-slate-100">
@@ -175,18 +175,18 @@ export default function HomePage() {
                 <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-slate-100">
                   {searchQuery
                     ? "No projects found"
-                    : filter === "private"
+                    : filter === "mine"
                     ? "No projects yet"
                     : "No projects available"}
                 </h3>
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                   {searchQuery
                     ? "Try a different search term"
-                    : filter === "private" && isAuthenticated
+                    : filter === "mine" && isAuthenticated
                     ? "Create your first project to get started"
                     : "Check back later for public projects"}
                 </p>
-                {filter === "private" && isAuthenticated && !searchQuery && (
+                {filter === "mine" && isAuthenticated && !searchQuery && (
                   <Link href="/projects/new" className="mt-4 inline-block">
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
