@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Plus, Search, Globe, Lock, FolderOpen, LogIn } from "lucide-react";
+import { Plus, Search, Globe, User, FolderOpen, LogIn } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/projects/project-card";
@@ -97,8 +97,8 @@ export default function HomePage() {
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
-                <Lock className="h-4 w-4" />
-                Private
+                <User className="h-4 w-4" />
+                My Projects
               </button>
               <button
                 onClick={() => setFilter("all")}
@@ -134,15 +134,15 @@ export default function HomePage() {
 
           {/* Content */}
           <div className="mt-8">
-            {/* Private tab login prompt for unauthenticated users */}
+            {/* My Projects tab login prompt for unauthenticated users */}
             {filter === "private" && !isAuthenticated ? (
               <div className="rounded-lg border border-slate-200 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-800">
-                <Lock className="mx-auto h-12 w-12 text-slate-400" />
+                <User className="mx-auto h-12 w-12 text-slate-400" />
                 <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-slate-100">
-                  Sign in to see your private projects
+                  Sign in to see your projects
                 </h3>
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                  Private projects are only visible to members with an assigned role
+                  View all projects you own or are a member of
                 </p>
                 <Button className="mt-6" onClick={() => signIn()}>
                   <LogIn className="mr-2 h-4 w-4" />
