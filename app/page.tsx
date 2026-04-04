@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -15,10 +15,18 @@ type FilterType = "public" | "mine" | "all";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
   const [filter, setFilter] = useState<FilterType>("public");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const isAuthenticated = status === "authenticated";
+  // Switch to "My Projects" tab once auth state is resolved
+  const authDefaultApplied = useRef(false);
+  useEffect(() => {
+    if (!authDefaultApplied.current && status !== "loading") {
+      authDefaultApplied.current = true;
+      if (isAuthenticated) setFilter("mine");
+    }
+  }, [status, isAuthenticated]);
 
   const {
     data,
@@ -77,18 +85,6 @@ export default function HomePage() {
             {/* Filter Tabs */}
             <div className="flex rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800">
               <button
-                onClick={() => setFilter("public")}
-                className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  filter === "public"
-                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                )}
-              >
-                <Globe className="h-4 w-4" />
-                Public
-              </button>
-              <button
                 onClick={() => setFilter("mine")}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
@@ -99,6 +95,18 @@ export default function HomePage() {
               >
                 <User className="h-4 w-4" />
                 My Projects
+              </button>
+              <button
+                onClick={() => setFilter("public")}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  filter === "public"
+                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                )}
+              >
+                <Globe className="h-4 w-4" />
+                Public
               </button>
               <button
                 onClick={() => setFilter("all")}
