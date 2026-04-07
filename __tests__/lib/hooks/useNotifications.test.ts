@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/hooks/useNotifications";
 import type { NotificationListResponse } from "@/lib/api/notifications";

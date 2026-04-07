@@ -18,6 +18,7 @@ const mockedGetCrossReferences = qualityApi.getCrossReferences as ReturnType<typ
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // eslint-disable-next-line react/display-name
   return ({ children }: { children: ReactNode }) =>
     React.createElement(QueryClientProvider, { client: qc }, children);
 }
@@ -27,13 +28,14 @@ const mockResponse: CrossReferencesResponse = {
   total: 2,
   groups: [
     {
-      context: "subclass_of",
-      context_label: "Subclass Of",
+      context: "parent_iris",
+      context_label: "Parent IRIs",
       references: [
         {
           source_iri: "http://example.org/Entity2",
+          source_type: "class",
           source_label: "Entity 2",
-          reference_context: "subclass_of",
+          reference_context: "parent_iris",
         },
       ],
     },

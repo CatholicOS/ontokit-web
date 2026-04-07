@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { mergePathsIntoTree, useFilteredTree, type AncestorPath } from "@/lib/hooks/useFilteredTree";
 import type { EntitySearchResult } from "@/lib/api/client";
 

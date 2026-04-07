@@ -18,6 +18,7 @@ const mockedGetEntityHistory = analyticsApi.getEntityHistory as ReturnType<typeo
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // eslint-disable-next-line react/display-name
   return ({ children }: { children: ReactNode }) =>
     React.createElement(QueryClientProvider, { client: qc }, children);
 }
