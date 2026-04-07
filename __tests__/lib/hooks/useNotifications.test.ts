@@ -151,6 +151,16 @@ describe("useNotifications", () => {
 
     expect(result.current.notifications).toEqual([]);
     expect(result.current.isLoading).toBe(false);
+
+    // Record call count after 401, then trigger a polling event
+    const callCountAfter401 = mockedList.mock.calls.length;
+    await act(async () => {
+      window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    // Polling should have stopped — no additional calls
+    expect(mockedList.mock.calls.length).toBe(callCountAfter401);
   });
 
   it("handles fetch errors gracefully", async () => {
