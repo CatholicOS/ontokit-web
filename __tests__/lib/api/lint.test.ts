@@ -49,10 +49,16 @@ describe("lintApi", () => {
       expect(options.headers.get("Authorization")).toBe("Bearer tok");
     });
 
-    it("throws ApiError on 403", async () => {
+    it("throws ApiError on 403 with correct status", async () => {
       mockError(403, "Forbidden", "Not authorized");
 
-      await expect(lintApi.triggerLint("p1", "tok")).rejects.toThrow(ApiError);
+      try {
+        await lintApi.triggerLint("p1", "tok");
+        expect.unreachable("should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).status).toBe(403);
+      }
     });
   });
 
@@ -166,13 +172,13 @@ describe("lintApi", () => {
       expect(url).toContain("/api/v1/projects/p1/lint/issues");
     });
 
-    it("passes subject_iri filter", async () => {
+    it("passes subject_iri filter with full encoded value", async () => {
       mockOk({ items: [], total: 0, skip: 0, limit: 20 });
 
       await lintApi.getIssues("p1", "tok", { subject_iri: "http://example.org/Class1" });
 
       const [url] = mockFetch.mock.calls[0];
-      expect(url).toContain("subject_iri=http");
+      expect(url).toContain("subject_iri=" + encodeURIComponent("http://example.org/Class1"));
     });
   });
 
