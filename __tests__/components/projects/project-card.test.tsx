@@ -103,15 +103,23 @@ describe("ProjectCard", () => {
   });
 
   // ── Updated date ────────────────────────────────────────────────
-  it("shows the updated date", () => {
-    render(<ProjectCard project={makeProject()} />);
-    // formatDate produces locale-specific output but will contain "2024"
-    expect(screen.getByText(/Updated.*2024/)).toBeDefined();
+  it("shows the updated_at date when present", () => {
+    render(<ProjectCard project={makeProject({
+      updated_at: "2025-03-20T12:00:00Z",
+      created_at: "2024-01-10T12:00:00Z",
+    })} />);
+    const dateText = screen.getByText(/Updated/).textContent!;
+    expect(dateText).toContain("2025");
+    expect(dateText).not.toContain("2024");
   });
 
   it("falls back to created_at when updated_at is absent", () => {
-    render(<ProjectCard project={makeProject({ updated_at: undefined })} />);
-    expect(screen.getByText(/Updated.*2024/)).toBeDefined();
+    render(<ProjectCard project={makeProject({
+      updated_at: undefined,
+      created_at: "2023-11-05T12:00:00Z",
+    })} />);
+    const dateText = screen.getByText(/Updated/).textContent!;
+    expect(dateText).toContain("2023");
   });
 
   // ── Custom className ────────────────────────────────────────────
