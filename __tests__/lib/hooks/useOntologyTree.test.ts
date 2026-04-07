@@ -424,6 +424,14 @@ describe("useOntologyTree", () => {
 
     expect(result.current.selectedIri).toBe("urn:Target");
     expect(mockedGetClassAncestors).toHaveBeenCalledWith("p1", "urn:Target", undefined, undefined);
+
+    // Verify ancestor "urn:Root" is expanded and target is present as its child
+    const rootNode = result.current.nodes.find((n) => n.iri === "urn:Root");
+    expect(rootNode).toBeDefined();
+    expect(rootNode!.children.length).toBeGreaterThan(0);
+    const targetNode = rootNode!.children.find((c) => c.iri === "urn:Target");
+    expect(targetNode).toBeDefined();
+    expect(targetNode!.label).toBe("Target");
   });
 
   it("navigateToNode still selects target when ancestor fetch fails", async () => {
