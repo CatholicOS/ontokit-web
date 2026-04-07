@@ -176,7 +176,7 @@ describe("useTreeDragDrop", () => {
     });
 
     await act(async () => {
-      result.current.handleDragEnd(makeDragEndEvent("http://ex.org/A"));
+      await result.current.handleDragEnd(makeDragEndEvent("http://ex.org/A"));
     });
 
     expect(onReparent).toHaveBeenCalledWith(
@@ -199,7 +199,7 @@ describe("useTreeDragDrop", () => {
     });
 
     await act(async () => {
-      result.current.handleDragEnd(makeDragEndEvent("http://ex.org/A"));
+      await result.current.handleDragEnd(makeDragEndEvent("http://ex.org/A"));
     });
 
     expect(result.current.undoAction).not.toBeNull();
@@ -221,7 +221,7 @@ describe("useTreeDragDrop", () => {
 
     // Drop on self (invalid)
     await act(async () => {
-      result.current.handleDragEnd(makeDragEndEvent("http://ex.org/B"));
+      await result.current.handleDragEnd(makeDragEndEvent("http://ex.org/B"));
     });
 
     expect(onReparent).not.toHaveBeenCalled();
@@ -239,7 +239,7 @@ describe("useTreeDragDrop", () => {
     });
 
     await act(async () => {
-      result.current.handleDragEnd(makeDragEndEvent(null));
+      await result.current.handleDragEnd(makeDragEndEvent(null));
     });
 
     expect(onReparent).not.toHaveBeenCalled();
