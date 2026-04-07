@@ -84,13 +84,14 @@ describe("projectApi", () => {
       expect(url).not.toContain("search=");
     });
 
-    it("throws ApiError on failure", async () => {
+    it("throws ApiError on failure after retrying", async () => {
       // 500 errors trigger retries (up to 3 attempts), so mock all 3
       mockError(500, "Internal Server Error", "Server error");
       mockError(500, "Internal Server Error", "Server error");
       mockError(500, "Internal Server Error", "Server error");
 
       await expect(projectApi.list()).rejects.toThrow(ApiError);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -191,6 +192,14 @@ describe("projectApi", () => {
       expect(url).toContain("/api/v1/projects/import");
       expect(options.method).toBe("POST");
       expect(options.body).toBeInstanceOf(FormData);
+
+      const formData = options.body as FormData;
+      const fileEntry = formData.get("file") as File;
+      expect(fileEntry).toBeInstanceOf(File);
+      expect(fileEntry.name).toBe("ontology.ttl");
+      expect(fileEntry.type).toBe("text/turtle");
+      expect(formData.get("is_public")).toBe("true");
+      expect(formData.get("name")).toBe("My Ont");
     });
   });
 
