@@ -129,7 +129,7 @@ describe("suggestionsApi", () => {
   // --- beacon ---
 
   describe("beacon", () => {
-    it("calls navigator.sendBeacon with correct URL and payload", () => {
+    it("calls navigator.sendBeacon with correct URL and payload", async () => {
       const mockBeacon = vi.fn().mockReturnValue(true);
       Object.defineProperty(navigator, "sendBeacon", {
         value: mockBeacon,
@@ -137,14 +137,20 @@ describe("suggestionsApi", () => {
         configurable: true,
       });
 
-      const result = suggestionsApi.beacon("p1", "s1", "turtle content", "beacon-tok");
+      const result = suggestionsApi.beacon("p1", "s1", "turtle content", "beacon tok+/%");
       expect(result).toBe(true);
 
       expect(mockBeacon).toHaveBeenCalledTimes(1);
       const [url, blob] = mockBeacon.mock.calls[0];
       expect(url).toContain("/api/v1/projects/p1/suggestions/beacon");
-      expect(url).toContain("token=beacon-tok");
+      expect(url).toContain("token=" + encodeURIComponent("beacon tok+/%"));
       expect(blob).toBeInstanceOf(Blob);
+
+      // Parse the Blob payload and verify JSON contents
+      const text = await (blob as Blob).text();
+      const parsed = JSON.parse(text);
+      expect(parsed.session_id).toBe("s1");
+      expect(parsed.content).toBe("turtle content");
     });
   });
 
