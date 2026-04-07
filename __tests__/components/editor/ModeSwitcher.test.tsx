@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 // Mock the editorModeStore
 const mockSetEditorMode = vi.fn();
@@ -40,16 +41,16 @@ describe("ModeSwitcher", () => {
     expect(screen.getByRole("button", { name: "Developer" }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("calls setEditorMode with 'developer' when Developer button is clicked", () => {
+  it("calls setEditorMode with 'developer' when Developer button is clicked", async () => {
     render(<ModeSwitcher />);
-    screen.getByRole("button", { name: "Developer" }).click();
+    await userEvent.click(screen.getByRole("button", { name: "Developer" }));
     expect(mockSetEditorMode).toHaveBeenCalledWith("developer");
   });
 
-  it("calls setEditorMode with 'standard' when Standard button is clicked", () => {
+  it("calls setEditorMode with 'standard' when Standard button is clicked", async () => {
     mockEditorMode = "developer";
     render(<ModeSwitcher />);
-    screen.getByRole("button", { name: "Standard" }).click();
+    await userEvent.click(screen.getByRole("button", { name: "Standard" }));
     expect(mockSetEditorMode).toHaveBeenCalledWith("standard");
   });
 

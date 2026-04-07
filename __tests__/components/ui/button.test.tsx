@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -84,6 +85,13 @@ describe("Button", () => {
     expect(btn.className).toContain("disabled:opacity-50");
   });
 
+  it("does not call onClick when disabled", async () => {
+    const handleClick = vi.fn();
+    render(<Button disabled onClick={handleClick}>Disabled</Button>);
+    await userEvent.click(screen.getByRole("button"));
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
   // ── className merge ───────────────────────────────────────────────
   it("merges custom className", () => {
     render(<Button className="my-custom-class">Merged</Button>);
@@ -102,10 +110,10 @@ describe("Button", () => {
   });
 
   // ── onClick ───────────────────────────────────────────────────────
-  it("calls onClick handler when clicked", () => {
+  it("calls onClick handler when clicked", async () => {
     const handleClick = vi.fn();
     render(<Button onClick={handleClick}>Click Me</Button>);
-    screen.getByRole("button").click();
+    await userEvent.click(screen.getByRole("button"));
     expect(handleClick).toHaveBeenCalledOnce();
   });
 });
