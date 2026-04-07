@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   Dialog,
@@ -128,9 +128,12 @@ describe("Dialog", () => {
       </Dialog>
     );
     expect(screen.getByText("Closeable")).toBeDefined();
-    await userEvent.click(screen.getByText("Close"));
-    // After closing, dialog content should be removed from DOM
-    expect(screen.queryByText("Closeable")).toBeNull();
+    const closeBtn = screen.getByRole("button", { name: /close/i });
+    await userEvent.click(closeBtn);
+    // Wait for dialog content to be removed from DOM
+    await waitFor(() => {
+      expect(screen.queryByText("Closeable")).toBeNull();
+    });
   });
 
   it("renders dialog role on content", () => {
