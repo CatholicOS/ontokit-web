@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useIriLabels } from "@/lib/hooks/useIriLabels";
 
 vi.mock("@/lib/api/client", () => ({
