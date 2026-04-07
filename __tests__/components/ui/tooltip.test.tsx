@@ -37,9 +37,14 @@ describe("Tooltip", () => {
       </Tooltip>
     );
     await userEvent.hover(screen.getByText("Hover target"));
-    // Radix tooltip may or may not render in jsdom; verify no crash
-    // and the trigger is still present
-    expect(screen.getByText("Hover target")).toBeDefined();
+    // Radix tooltip may not fully render in jsdom; check if content appeared,
+    // otherwise verify trigger is still present and no crash occurred
+    const tooltipContent = screen.queryByText("Visible now");
+    if (tooltipContent) {
+      expect(tooltipContent).not.toBeNull();
+    } else {
+      expect(screen.getByText("Hover target")).toBeDefined();
+    }
   });
 
   it("renders with string content", () => {

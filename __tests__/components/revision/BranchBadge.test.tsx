@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 // Mock useBranch context
@@ -18,6 +18,15 @@ vi.mock("@/lib/context/BranchContext", () => ({
 import { BranchBadge } from "@/components/revision/BranchBadge";
 
 describe("BranchBadge", () => {
+  beforeEach(() => {
+    mockBranchContext.currentBranch = "feature/add-class";
+    mockBranchContext.defaultBranch = "main";
+    mockBranchContext.branches = [
+      { name: "feature/add-class", commits_ahead: 3, commits_behind: 0 },
+    ];
+    mockBranchContext.isFeatureBranch = true;
+  });
+
   it("renders the current branch name", () => {
     render(<BranchBadge />);
     expect(screen.getByText("feature/add-class")).toBeDefined();
@@ -27,7 +36,6 @@ describe("BranchBadge", () => {
     mockBranchContext.isFeatureBranch = false;
     const { container } = render(<BranchBadge />);
     expect(container.innerHTML).toBe("");
-    mockBranchContext.isFeatureBranch = true;
   });
 
   it("shows commits ahead count when showCommitCount is true", () => {
@@ -46,10 +54,6 @@ describe("BranchBadge", () => {
     ];
     render(<BranchBadge />);
     expect(screen.queryByText("0")).toBeNull();
-    // Restore
-    mockBranchContext.branches = [
-      { name: "feature/add-class", commits_ahead: 3, commits_behind: 0 },
-    ];
   });
 
   it("shows commits behind indicator when > 0", () => {
@@ -58,10 +62,6 @@ describe("BranchBadge", () => {
     ];
     render(<BranchBadge />);
     expect(screen.getByText("2 behind")).toBeDefined();
-    // Restore
-    mockBranchContext.branches = [
-      { name: "feature/add-class", commits_ahead: 3, commits_behind: 0 },
-    ];
   });
 
   it("does not show behind indicator when commits_behind is 0", () => {
@@ -77,10 +77,6 @@ describe("BranchBadge", () => {
     const behindEl = screen.getByText("5 behind");
     const wrapper = behindEl.closest("span");
     expect(wrapper?.getAttribute("title")).toBe("5 commits behind main");
-    // Restore
-    mockBranchContext.branches = [
-      { name: "feature/add-class", commits_ahead: 3, commits_behind: 0 },
-    ];
   });
 
   it("uses singular 'commit' for 1 behind", () => {
@@ -91,10 +87,6 @@ describe("BranchBadge", () => {
     const behindEl = screen.getByText("1 behind");
     const wrapper = behindEl.closest("span");
     expect(wrapper?.getAttribute("title")).toBe("1 commit behind main");
-    // Restore
-    mockBranchContext.branches = [
-      { name: "feature/add-class", commits_ahead: 3, commits_behind: 0 },
-    ];
   });
 
   it("applies custom className", () => {
@@ -107,11 +99,6 @@ describe("BranchBadge", () => {
     mockBranchContext.branches = [];
     render(<BranchBadge />);
     expect(screen.getByText("feature/add-class")).toBeDefined();
-    // No crash, no commits shown
     expect(screen.queryByText(/behind/)).toBeNull();
-    // Restore
-    mockBranchContext.branches = [
-      { name: "feature/add-class", commits_ahead: 3, commits_behind: 0 },
-    ];
   });
 });

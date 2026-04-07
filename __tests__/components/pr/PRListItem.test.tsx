@@ -132,8 +132,7 @@ describe("PRListItem", () => {
     render(
       <PRListItem pr={makePR({ commits_ahead: 0 })} projectId="proj-1" />
     );
-    expect(screen.queryByText("commit")).toBeNull();
-    expect(screen.queryByText("commits")).toBeNull();
+    expect(screen.queryByText(/commits?\s+ahead/)).toBeNull();
   });
 
   it("renders GitHub link when github_pr_url is provided", () => {
@@ -176,6 +175,9 @@ describe("PRListItem", () => {
         projectId="proj-1"
       />
     );
-    expect(screen.getByText(/merged/)).toBeDefined();
+    // Verify merged status badge is shown
+    expect(screen.getAllByText(/merged/i).length).toBeGreaterThan(0);
+    // Verify the merged date is rendered alongside the status
+    expect(screen.getByText(/merged Jan 15/)).toBeDefined();
   });
 });

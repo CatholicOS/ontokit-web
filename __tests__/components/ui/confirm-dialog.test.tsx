@@ -110,8 +110,8 @@ describe("ConfirmDialog", () => {
     );
     render(<ConfirmDialog {...defaultProps} onConfirm={onConfirm} />);
     // Click confirm but don't await resolution
-    act(() => {
-      userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await act(async () => {
+      await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
     });
     // Wait for "Processing..." to appear
     await screen.findByText("Processing...");

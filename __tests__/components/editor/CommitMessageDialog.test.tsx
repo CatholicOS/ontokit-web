@@ -70,7 +70,7 @@ describe("CommitMessageDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith("Fix label typo");
   });
 
-  it("shows error when commit message is only whitespace", async () => {
+  it("disables submit button when commit message is only whitespace", async () => {
     render(<CommitMessageDialog {...defaultProps} defaultMessage="   " />);
     // With only whitespace, message.trim() is empty, so button is disabled
     const submitBtn = screen.getByRole("button", { name: "Save & Commit" });

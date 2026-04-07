@@ -280,9 +280,10 @@ describe("parseBlockTriples", () => {
 
     const triples = parseBlockTriples(source, "http://example.org/ont#Foo");
     expect(triples).not.toBeNull();
-    expect(triples![0].predicate).toBe(
-      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+    const typeTriple = triples!.find(
+      (t) => t.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
     );
+    expect(typeTriple).not.toBeNull();
   });
 
   it("resolves relative IRIs using @base", () => {

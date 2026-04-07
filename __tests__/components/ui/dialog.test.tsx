@@ -129,10 +129,8 @@ describe("Dialog", () => {
     );
     expect(screen.getByText("Closeable")).toBeDefined();
     await userEvent.click(screen.getByText("Close"));
-    // After closing, content should be removed from DOM
-    await screen.findByText("Close").catch(() => {
-      // Expected: dialog closed
-    });
+    // After closing, dialog content should be removed from DOM
+    expect(screen.queryByText("Closeable")).toBeNull();
   });
 
   it("renders dialog role on content", () => {

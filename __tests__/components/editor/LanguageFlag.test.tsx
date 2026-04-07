@@ -65,6 +65,6 @@ describe("LanguageFlag", () => {
   it("renders without crashing for unknown lang codes", () => {
     const { container } = render(<LanguageFlag lang="xyz" />);
     const span = container.querySelector("span");
-    expect(span).toBeDefined();
+    expect(span).not.toBeNull();
   });
 });

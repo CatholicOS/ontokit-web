@@ -20,9 +20,11 @@ vi.mock("@/lib/api/remoteSync", () => ({
 vi.mock("@/lib/api/client", () => ({
   ApiError: class ApiError extends Error {
     status: number;
-    constructor(message: string, status: number) {
+    statusText: string;
+    constructor(status: number, statusText: string, message: string) {
       super(message);
       this.status = status;
+      this.statusText = statusText;
     }
   },
 }));

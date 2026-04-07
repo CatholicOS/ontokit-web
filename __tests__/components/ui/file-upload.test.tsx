@@ -27,7 +27,7 @@ describe("FileUpload", () => {
   it("renders a hidden file input with correct accept attribute", () => {
     const { container } = render(<FileUpload {...defaultProps} />);
     const input = container.querySelector("input[type='file']") as HTMLInputElement;
-    expect(input).toBeDefined();
+    expect(input).not.toBeNull();
     expect(input.accept).toBe(".owl,.rdf,.ttl,.n3,.jsonld");
     expect(input.className).toContain("hidden");
   });
