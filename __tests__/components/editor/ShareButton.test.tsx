@@ -13,6 +13,7 @@ import { ShareButton } from "@/components/editor/ShareButton";
 
 describe("ShareButton", () => {
   let writeTextMock: ReturnType<typeof vi.fn>;
+  const originalClipboard = navigator.clipboard;
 
   beforeEach(() => {
     writeTextMock = vi.fn().mockResolvedValue(undefined);
@@ -21,6 +22,10 @@ describe("ShareButton", () => {
     });
     mockSuccess.mockClear();
     mockError.mockClear();
+  });
+
+  afterEach(() => {
+    Object.assign(navigator, { clipboard: originalClipboard });
   });
 
   // ── Simple button (no selectedIri) ──────────────────────────────
@@ -107,12 +112,10 @@ describe("ShareButton", () => {
       await act(async () => {
         screen.getByText("Copy project link").click();
       });
-      expect(writeTextMock).toHaveBeenCalledWith(
-        expect.stringContaining("/projects/proj-1")
-      );
-      expect(writeTextMock).toHaveBeenCalledWith(
-        expect.not.stringContaining("classIri")
-      );
+      expect(writeTextMock).toHaveBeenCalledTimes(1);
+      const copiedUrl = writeTextMock.mock.calls[0][0] as string;
+      expect(copiedUrl).toContain("/projects/proj-1");
+      expect(copiedUrl).not.toContain("classIri");
       expect(mockSuccess).toHaveBeenCalledWith("Copied project link");
     });
 
