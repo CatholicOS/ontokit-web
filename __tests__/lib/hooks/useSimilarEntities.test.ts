@@ -141,5 +141,6 @@ describe("useSimilarEntities", () => {
       { wrapper: createWrapper() },
     );
     expect(result.current.isFetching).toBe(false);
+    expect(mockedGetSimilar).not.toHaveBeenCalled();
   });
 });
