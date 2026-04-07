@@ -94,6 +94,18 @@ describe("pullRequestsApi", () => {
 
       await expect(pullRequestsApi.list("p1")).rejects.toThrow(ApiError);
     });
+
+    it("throws ApiError on mutation failure", async () => {
+      mockError(403, "Forbidden", "Access denied");
+
+      try {
+        await pullRequestsApi.create("p1", { title: "test", source_branch: "feat", target_branch: "main" }, "tok");
+        expect.unreachable("should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).status).toBe(403);
+      }
+    });
   });
 
   // --- get ---
@@ -338,12 +350,13 @@ describe("githubIntegrationApi", () => {
   });
 
   describe("update", () => {
-    it("calls PATCH /github-integration", async () => {
+    it("calls PATCH /github-integration with correct URL", async () => {
       mockOk({ id: "gi1" });
 
       await githubIntegrationApi.update("p1", { sync_enabled: true }, "tok");
 
-      const [, options] = mockFetch.mock.calls[0];
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain("/api/v1/projects/p1/github-integration");
       expect(options.method).toBe("PATCH");
     });
   });
