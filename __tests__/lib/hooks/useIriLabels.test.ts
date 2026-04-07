@@ -84,6 +84,7 @@ describe("useIriLabels", () => {
     // labelHints are returned immediately, no fetch needed
     expect(result.current["http://example.org/Known"]).toBe("Known Label");
     expect(mockedGetClassDetail).not.toHaveBeenCalled();
+    expect(mockedSearchEntities).not.toHaveBeenCalled();
   });
 
   it("merges labelHints with fetched labels", async () => {
@@ -165,9 +166,9 @@ describe("useIriLabels", () => {
       }),
     );
 
-    // Give time for async resolution to complete
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 50));
+    // Wait for both API paths to complete (getClassDetail fails, searchEntities fallback runs)
+    await waitFor(() => {
+      expect(mockedSearchEntities).toHaveBeenCalled();
     });
 
     // No label resolved, but no crash
