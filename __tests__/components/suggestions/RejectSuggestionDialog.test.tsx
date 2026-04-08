@@ -136,8 +136,8 @@ describe("RejectSuggestionDialog", () => {
 
     await waitFor(() => {
       expect(mockOnConfirm).toHaveBeenCalledWith("Not aligned");
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
-    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("shows error when onConfirm fails", async () => {
