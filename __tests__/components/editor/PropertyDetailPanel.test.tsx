@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // ── Mocks (must be before component import) ──
@@ -149,7 +149,7 @@ describe("PropertyDetailPanel", () => {
         canEdit={false}
       />
     );
-    expect(container.querySelector(".animate-spin")).toBeDefined();
+    expect(container.querySelector(".animate-spin")).not.toBeNull();
   });
 
   // ── Not found state ──
