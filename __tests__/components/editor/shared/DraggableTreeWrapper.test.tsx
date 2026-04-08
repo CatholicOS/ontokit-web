@@ -88,13 +88,13 @@ describe("DraggableTreeWrapper", () => {
   });
 
   it("does not render overlay when draggedLabel is null even if active", () => {
-    render(
+    const { container } = render(
       <DraggableTreeWrapper {...defaultProps} isDragActive={true} draggedLabel={null}>
         <div>Child</div>
       </DraggableTreeWrapper>,
     );
-    // The overlay component should not render at all
-    expect(screen.queryByTestId("root-drop-zone")).toBeDefined();
+    // PointerOverlay (div.tree-drag-overlay) must not be rendered when draggedLabel is null
+    expect(container.querySelector(".tree-drag-overlay")).toBeNull();
   });
 
   it("passes isActive=false to RootDropZone when not dragging", () => {
