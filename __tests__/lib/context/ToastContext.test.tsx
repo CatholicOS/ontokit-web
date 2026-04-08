@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
 import { ToastProvider, useToast } from "@/lib/context/ToastContext";
@@ -10,6 +10,11 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe("ToastContext", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it("throws when useToast is used outside ToastProvider", () => {
