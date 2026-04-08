@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import type { Project } from "@/lib/api/projects";
 
@@ -97,7 +97,7 @@ import { pullRequestsApi } from "@/lib/api/pullRequests";
 import { lintApi } from "@/lib/api/lint";
 import { normalizationApi } from "@/lib/api/normalization";
 import { suggestionsApi } from "@/lib/api/suggestions";
-import { revisionsApi } from "@/lib/api/revisions";
+import { revisionsApi, type RevisionFileResponse } from "@/lib/api/revisions";
 import { useOntologyTree } from "@/lib/hooks/useOntologyTree";
 
 function makeProject(overrides?: Partial<Project>): Project {
@@ -617,7 +617,7 @@ describe("useProjectViewer", () => {
     });
 
     // Use a deferred promise so we can observe intermediate state
-    let resolveLoad!: (value: { content: string }) => void;
+    let resolveLoad!: (value: RevisionFileResponse) => void;
     vi.mocked(revisionsApi.getFileAtVersion).mockImplementationOnce(
       () => new Promise((resolve) => { resolveLoad = resolve; })
     );
@@ -645,7 +645,7 @@ describe("useProjectViewer", () => {
 
     // Resolve the load
     await act(async () => {
-      resolveLoad({ content: "@prefix ex: <http://example.org/> .\nex:A a owl:Class ." });
+      resolveLoad({ project_id: "p1", version: "main", filename: "ontology.ttl", content: "@prefix ex: <http://example.org/> .\nex:A a owl:Class ." });
       await loadPromise!;
     });
 

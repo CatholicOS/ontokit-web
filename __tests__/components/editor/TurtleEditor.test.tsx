@@ -29,10 +29,11 @@ let capturedBeforeMount: ((monaco: unknown) => void) | null = null;
 let capturedOnMount: ((editor: unknown, monaco: unknown) => void) | null = null;
 let capturedProps: Record<string, unknown> = {};
 
-vi.mock("@monaco-editor/react", () => {
-  const React = require("react");
+vi.mock("@monaco-editor/react", async () => {
+  const React = await import("react");
 
   const EditorComponent = (props: Record<string, unknown>) => {
+    // eslint-disable-next-line react-hooks/globals
     capturedProps = props;
 
     React.useEffect(() => {

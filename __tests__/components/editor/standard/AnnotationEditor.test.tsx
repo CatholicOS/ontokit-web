@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import type { AnnotationUpdate } from "@/lib/api/client";
@@ -101,8 +101,8 @@ import { AnnotationEditor, AnnotationPropertyPicker } from "@/components/editor/
 
 const rdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label";
 const rdfsComment = "http://www.w3.org/2000/01/rdf-schema#comment";
-const skosPrefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel";
-const skosDefinition = "http://www.w3.org/2004/02/skos/core#definition";
+const _skosPrefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel";
+const _skosDefinition = "http://www.w3.org/2004/02/skos/core#definition";
 
 const sampleAnnotations: AnnotationUpdate[] = [
   {

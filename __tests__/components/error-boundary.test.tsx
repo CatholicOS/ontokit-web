@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -73,7 +74,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("shows generic message when error has no message", () => {
-    function ThrowEmptyError() {
+    function ThrowEmptyError(): React.ReactNode {
       throw new Error();
     }
 

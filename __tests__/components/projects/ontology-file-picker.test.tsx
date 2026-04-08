@@ -103,7 +103,6 @@ describe("OntologyFilePicker", () => {
   });
 
   it("shows turtle path substep for non-ttl files", async () => {
-    const user = userEvent.setup();
     mockScanGitHubRepoFiles.mockResolvedValue({ items: [owlFile] });
     render(
       <OntologyFilePicker owner="o" repo="r" token="t" onSelect={vi.fn()} />,

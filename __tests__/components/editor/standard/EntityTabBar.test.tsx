@@ -6,7 +6,7 @@ vi.mock("@/lib/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-import { EntityTabBar, type EntityTab } from "@/components/editor/standard/EntityTabBar";
+import { EntityTabBar } from "@/components/editor/standard/EntityTabBar";
 
 describe("EntityTabBar", () => {
   const onTabChange = vi.fn();

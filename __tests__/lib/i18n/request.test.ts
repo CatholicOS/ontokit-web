@@ -32,7 +32,7 @@ describe("lib/i18n/request", () => {
 
     // Re-import to get fresh config function
     const mod = await import("@/lib/i18n/request");
-    const configFn = mod.default;
+    const configFn = mod.default as () => Promise<{ locale: string; messages: unknown }>;
     const result = await configFn();
 
     expect(result.locale).toBe("en");
@@ -44,7 +44,7 @@ describe("lib/i18n/request", () => {
     mockHeaderGet.mockReturnValue("en;q=0.9");
 
     const mod = await import("@/lib/i18n/request");
-    const configFn = mod.default;
+    const configFn = mod.default as () => Promise<{ locale: string; messages: unknown }>;
     const result = await configFn();
 
     expect(result.locale).toBe("en");
@@ -55,7 +55,7 @@ describe("lib/i18n/request", () => {
     mockHeaderGet.mockReturnValue("en-US,en;q=0.9,de;q=0.8");
 
     const mod = await import("@/lib/i18n/request");
-    const configFn = mod.default;
+    const configFn = mod.default as () => Promise<{ locale: string; messages: unknown }>;
     const result = await configFn();
 
     expect(result.locale).toBe("en");
@@ -66,7 +66,7 @@ describe("lib/i18n/request", () => {
     mockHeaderGet.mockReturnValue("fr,de;q=0.9");
 
     const mod = await import("@/lib/i18n/request");
-    const configFn = mod.default;
+    const configFn = mod.default as () => Promise<{ locale: string; messages: unknown }>;
     const result = await configFn();
 
     expect(result.locale).toBe("en");
@@ -77,7 +77,7 @@ describe("lib/i18n/request", () => {
     mockHeaderGet.mockReturnValue(null);
 
     const mod = await import("@/lib/i18n/request");
-    const configFn = mod.default;
+    const configFn = mod.default as () => Promise<{ locale: string; messages: unknown }>;
     const result = await configFn();
 
     expect(result.locale).toBe("en");
@@ -88,7 +88,7 @@ describe("lib/i18n/request", () => {
     mockHeaderGet.mockReturnValue(null);
 
     const mod = await import("@/lib/i18n/request");
-    const configFn = mod.default;
+    const configFn = mod.default as () => Promise<{ locale: string; messages: unknown }>;
     const result = await configFn();
 
     expect(result.locale).toBe("en");

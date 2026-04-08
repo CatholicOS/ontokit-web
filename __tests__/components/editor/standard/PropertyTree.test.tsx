@@ -19,14 +19,14 @@ vi.mock("@/lib/utils", () => ({
   },
 }));
 
-const mockOnExpand = vi.fn();
-const mockOnCollapse = vi.fn();
-const mockOnSelect = vi.fn();
+const _mockOnExpand = vi.fn();
+const _mockOnCollapse = vi.fn();
+const _mockOnSelect = vi.fn();
 
 vi.mock("@/components/editor/shared/EntityTree", () => ({
   EntityTree: ({
     nodes,
-    selectedIri,
+    selectedIri: _selectedIri,
     onSelect,
     onExpand,
     onCollapse,

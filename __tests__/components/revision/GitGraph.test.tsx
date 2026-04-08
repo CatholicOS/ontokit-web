@@ -5,10 +5,11 @@ import type { GraphLayout } from "@/lib/git-graph/types";
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
-const mockBuildGraphLayout = vi.fn<() => GraphLayout>();
+const mockBuildGraphLayout = vi.fn<(commits: RevisionCommit[], refs?: Record<string, string[]>, defaultBranch?: string) => GraphLayout>();
 
 vi.mock("@/lib/git-graph/graph-builder", () => ({
-  buildGraphLayout: (...args: unknown[]) => mockBuildGraphLayout(...args),
+  buildGraphLayout: (commits: RevisionCommit[], refs?: Record<string, string[]>, defaultBranch?: string) =>
+    mockBuildGraphLayout(commits, refs, defaultBranch),
 }));
 
 vi.mock("@/lib/git-graph/types", async (importOriginal) => {

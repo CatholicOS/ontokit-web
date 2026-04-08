@@ -36,10 +36,10 @@ vi.mock("@/components/editor/ClassDetailPanel", () => ({
   ),
 }));
 
-let tabChangeHandler: ((id: string) => void) | undefined;
+let _tabChangeHandler: ((id: string) => void) | undefined;
 vi.mock("@/components/editor/standard/EntityTabBar", () => ({
   EntityTabBar: (props: Record<string, unknown>) => {
-    tabChangeHandler = props.onTabChange as (id: string) => void;
+    _tabChangeHandler = props.onTabChange as (id: string) => void;
     return (
       <div data-testid="entity-tab-bar">
         <button onClick={() => (props.onTabChange as (id: string) => void)?.("classes")}>Classes</button>
@@ -193,8 +193,6 @@ const sampleNodes: ClassTreeNode[] = [
     isExpanded: false,
     isLoading: false,
     hasChildren: false,
-    parentIri: null,
-    depth: 0,
   },
 ];
 
@@ -203,7 +201,7 @@ const sampleNodes: ClassTreeNode[] = [
 describe("StandardEditorLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    tabChangeHandler = undefined;
+    _tabChangeHandler = undefined;
   });
 
   it("renders entity tab bar", () => {

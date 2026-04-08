@@ -4,11 +4,11 @@ import type { RevisionCommit, RevisionHistoryResponse } from "@/lib/api/revision
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
-const mockGetHistory = vi.fn<() => Promise<RevisionHistoryResponse>>();
+const mockGetHistory = vi.fn<(projectId: string, token?: string) => Promise<RevisionHistoryResponse>>();
 
 vi.mock("@/lib/api/revisions", () => ({
   revisionsApi: {
-    getHistory: (...args: unknown[]) => mockGetHistory(...args),
+    getHistory: (projectId: string, token?: string) => mockGetHistory(projectId, token),
   },
 }));
 

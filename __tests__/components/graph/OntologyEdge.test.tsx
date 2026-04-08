@@ -40,7 +40,7 @@ describe("OntologyEdge", () => {
   });
 
   it("renders the base edge with subClassOf style by default", () => {
-    const { container } = render(
+    render(
       <svg>
         <OntologyEdge {...baseProps} />
       </svg>
@@ -51,7 +51,7 @@ describe("OntologyEdge", () => {
   });
 
   it("renders with equivalentClass edge type", () => {
-    const { container } = render(
+    render(
       <svg>
         <OntologyEdge
           {...baseProps}
