@@ -28,10 +28,7 @@ export const monacoMock = {
       "data-modified": props.modified,
     }),
   loader: {
-    init: vi.fn().mockResolvedValue({
-      editor: { defineTheme: vi.fn(), setTheme: vi.fn() },
-      languages: { register: vi.fn(), setMonarchTokensProvider: vi.fn(), setLanguageConfiguration: vi.fn() },
-    }),
+    init: vi.fn().mockImplementation(() => Promise.resolve(createMockMonacoInstance())),
   },
 };
 
