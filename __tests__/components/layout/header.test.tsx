@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Header } from "@/components/layout/header";
 
@@ -30,6 +30,10 @@ vi.mock("@/components/editor/ThemeToggle", () => ({
 }));
 
 describe("Header", () => {
+  beforeEach(() => {
+    mockPathname = "/";
+  });
+
   it("renders the OntoKit brand link", () => {
     render(<Header />);
     expect(screen.getByText("OntoKit")).toBeDefined();
