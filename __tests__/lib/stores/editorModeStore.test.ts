@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 
 // vi.hoisted runs before any imports — needed because the store's module-level
 // code calls window.matchMedia(...).addEventListener(...)
-const { mockMatchMedia } = vi.hoisted(() => {
+vi.hoisted(() => {
   const mockMatchMedia = vi.fn().mockReturnValue({
     matches: false,
     addEventListener: vi.fn(),
@@ -10,7 +10,6 @@ const { mockMatchMedia } = vi.hoisted(() => {
   });
   // In jsdom, window === globalThis
   (globalThis as Record<string, unknown>).matchMedia = mockMatchMedia;
-  return { mockMatchMedia };
 });
 
 import { useEditorModeStore, applyThemeToDOM } from "@/lib/stores/editorModeStore";
