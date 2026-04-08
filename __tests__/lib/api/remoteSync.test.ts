@@ -3,9 +3,11 @@ import {
   mockFetch,
   mockOk,
   mockEmpty,
+  mockError,
   resetFetch,
 } from "@/__tests__/helpers/mockFetch";
 import { remoteSyncApi } from "@/lib/api/remoteSync";
+import { ApiError } from "@/lib/api/client";
 
 describe("remoteSyncApi", () => {
   beforeEach(() => {
@@ -132,6 +134,17 @@ describe("remoteSyncApi", () => {
       expect(url).toContain(
         "/api/v1/projects/proj-1/remote-sync/jobs/job-1"
       );
+    });
+  });
+
+  describe("errors", () => {
+    it("throws ApiError on server failure", async () => {
+      // The client retries 5xx errors up to 2 times (3 attempts total)
+      mockError(500, "Internal Server Error", "Server error");
+      mockError(500, "Internal Server Error", "Server error");
+      mockError(500, "Internal Server Error", "Server error");
+
+      await expect(remoteSyncApi.getConfig("proj-1")).rejects.toThrow(ApiError);
     });
   });
 
