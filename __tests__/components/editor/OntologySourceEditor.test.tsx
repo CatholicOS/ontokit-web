@@ -704,7 +704,6 @@ describe("OntologySourceEditor", () => {
   // ── Worker error handling ──
 
   it("falls back to line-1 diagnostics when worker errors", async () => {
-    // Replace MockWorker with one that triggers onerror
     const OrigWorker = globalThis.Worker;
     class ErrorWorker {
       onmessage: ((e: MessageEvent) => void) | null = null;
@@ -718,28 +717,28 @@ describe("OntologySourceEditor", () => {
     }
     vi.stubGlobal("Worker", ErrorWorker);
 
-    mockGetIssues.mockResolvedValue({
-      items: [
-        {
-          id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
-          rule_id: "ERR1", message: "An error", subject_iri: "http://example.org/A",
-          details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-      ],
-      total: 1,
-      skip: 0,
-      limit: 200,
-    });
+    try {
+      mockGetIssues.mockResolvedValue({
+        items: [
+          {
+            id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
+            rule_id: "ERR1", message: "An error", subject_iri: "http://example.org/A",
+            details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+        ],
+        total: 1,
+        skip: 0,
+        limit: 200,
+      });
 
-    render(<OntologySourceEditor {...DEFAULT_PROPS} />);
+      render(<OntologySourceEditor {...DEFAULT_PROPS} />);
 
-    // Should still show the problems panel with fallback diagnostics
-    await waitFor(() => {
-      expect(screen.getByText("Problems (1)")).toBeDefined();
-    });
-
-    // Restore original worker
-    vi.stubGlobal("Worker", OrigWorker);
+      await waitFor(() => {
+        expect(screen.getByText("Problems (1)")).toBeDefined();
+      });
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── Empty value clears diagnostics ──
@@ -804,23 +803,23 @@ describe("OntologySourceEditor", () => {
       limit: 200,
     });
 
-    const user = userEvent.setup();
-    render(<OntologySourceEditor {...DEFAULT_PROPS} />);
+    try {
+      const user = userEvent.setup();
+      render(<OntologySourceEditor {...DEFAULT_PROPS} />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Missing label")).toBeDefined();
-    });
+      await waitFor(() => {
+        expect(screen.getByText("Missing label")).toBeDefined();
+      });
 
-    // Clicking the issue should not throw
-    const issueButton = screen.getByText("Missing label").closest("button")!;
-    await user.click(issueButton);
+      const issueButton = screen.getByText("Missing label").closest("button")!;
+      await user.click(issueButton);
 
-    // Verify line number is displayed (issue position was mapped)
-    await waitFor(() => {
-      expect(screen.getByText("Ln 4")).toBeDefined();
-    });
-
-    vi.stubGlobal("Worker", OrigWorker);
+      await waitFor(() => {
+        expect(screen.getByText("Ln 4")).toBeDefined();
+      });
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── Problems panel: subject_iri display with hash ──
@@ -924,45 +923,45 @@ describe("OntologySourceEditor", () => {
     }
     vi.stubGlobal("Worker", SortWorker);
 
-    mockGetIssues.mockResolvedValue({
-      items: [
-        {
-          id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
-          rule_id: "ERR1", message: "No position issue",
-          subject_iri: null, details: null,
-          created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-        {
-          id: "i2", run_id: "r1", project_id: "proj-1", issue_type: "warning",
-          rule_id: "WARN1", message: "Has position issue",
-          subject_iri: "http://example.org/A", details: null,
-          created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-      ],
-      total: 2,
-      skip: 0,
-      limit: 200,
-    });
+    try {
+      mockGetIssues.mockResolvedValue({
+        items: [
+          {
+            id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
+            rule_id: "ERR1", message: "No position issue",
+            subject_iri: null, details: null,
+            created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+          {
+            id: "i2", run_id: "r1", project_id: "proj-1", issue_type: "warning",
+            rule_id: "WARN1", message: "Has position issue",
+            subject_iri: "http://example.org/A", details: null,
+            created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+        ],
+        total: 2,
+        skip: 0,
+        limit: 200,
+      });
 
-    render(<OntologySourceEditor {...DEFAULT_PROPS} />);
+      render(<OntologySourceEditor {...DEFAULT_PROPS} />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Ln 10")).toBeDefined();
-    });
+      await waitFor(() => {
+        expect(screen.getByText("Ln 10")).toBeDefined();
+      });
 
-    // Both issues should be present
-    expect(screen.getByText("Has position issue")).toBeDefined();
-    expect(screen.getByText("No position issue")).toBeDefined();
+      expect(screen.getByText("Has position issue")).toBeDefined();
+      expect(screen.getByText("No position issue")).toBeDefined();
 
-    // The positioned issue should come first in DOM order
-    const buttons = screen.getAllByRole("button").filter(
-      btn => btn.textContent?.includes("position issue")
-    );
-    expect(buttons.length).toBe(2);
-    expect(buttons[0].textContent).toContain("Has position issue");
-    expect(buttons[1].textContent).toContain("No position issue");
-
-    vi.stubGlobal("Worker", OrigWorker);
+      const buttons = screen.getAllByRole("button").filter(
+        btn => btn.textContent?.includes("position issue")
+      );
+      expect(buttons.length).toBe(2);
+      expect(buttons[0].textContent).toContain("Has position issue");
+      expect(buttons[1].textContent).toContain("No position issue");
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── Status bar: indexing stats display ──
@@ -989,29 +988,30 @@ describe("OntologySourceEditor", () => {
     }
     vi.stubGlobal("Worker", StatsWorker);
 
-    mockGetIssues.mockResolvedValue({
-      items: [
-        {
-          id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
-          rule_id: "ERR1", message: "An error", subject_iri: "http://example.org/A",
-          details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-      ],
-      total: 1,
-      skip: 0,
-      limit: 200,
-    });
+    try {
+      mockGetIssues.mockResolvedValue({
+        items: [
+          {
+            id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
+            rule_id: "ERR1", message: "An error", subject_iri: "http://example.org/A",
+            details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+        ],
+        total: 1,
+        skip: 0,
+        limit: 200,
+      });
 
-    render(<OntologySourceEditor {...DEFAULT_PROPS} />);
+      render(<OntologySourceEditor {...DEFAULT_PROPS} />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Indexed 42 IRIs in 12ms/)).toBeDefined();
-    });
+      await waitFor(() => {
+        expect(screen.getByText(/Indexed 42 IRIs in 12ms/)).toBeDefined();
+      });
 
-    // Also shows issues mapped count
-    expect(screen.getByText(/3 issues mapped/)).toBeDefined();
-
-    vi.stubGlobal("Worker", OrigWorker);
+      expect(screen.getByText(/3 issues mapped/)).toBeDefined();
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── Status bar: "Ready" indicator ──
@@ -1037,31 +1037,31 @@ describe("OntologySourceEditor", () => {
     }
     vi.stubGlobal("Worker", SlowWorker);
 
-    mockGetIssues.mockResolvedValue({
-      items: [
-        {
-          id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
-          rule_id: "ERR1", message: "An error", subject_iri: null,
-          details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-      ],
-      total: 1,
-      skip: 0,
-      limit: 200,
-    });
+    try {
+      mockGetIssues.mockResolvedValue({
+        items: [
+          {
+            id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
+            rule_id: "ERR1", message: "An error", subject_iri: null,
+            details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+        ],
+        total: 1,
+        skip: 0,
+        limit: 200,
+      });
 
-    render(<OntologySourceEditor {...DEFAULT_PROPS} />);
+      render(<OntologySourceEditor {...DEFAULT_PROPS} />);
 
-    await waitFor(() => {
-      // Wait for lint issues to load first
-      expect(screen.getByText("Problems (1)")).toBeDefined();
-    });
+      await waitFor(() => {
+        expect(screen.getByText("Problems (1)")).toBeDefined();
+      });
 
-    // Should show indexing indicators (toolbar and status bar)
-    expect(screen.getAllByText("Indexing...").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Indexing IRIs...")).toBeDefined();
-
-    vi.stubGlobal("Worker", OrigWorker);
+      expect(screen.getAllByText("Indexing...").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("Indexing IRIs...")).toBeDefined();
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── Diagnostic click navigates to class ──
@@ -1097,35 +1097,37 @@ describe("OntologySourceEditor", () => {
     }
     vi.stubGlobal("Worker", DiagWorker);
 
-    const onNavigateToClass = vi.fn();
-    mockGetIssues.mockResolvedValue({
-      items: [
-        {
-          id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
-          rule_id: "NAV_RULE", message: "Navigate test",
-          subject_iri: "http://example.org/ontology#Person",
-          details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-      ],
-      total: 1,
-      skip: 0,
-      limit: 200,
-    });
+    try {
+      const onNavigateToClass = vi.fn();
+      mockGetIssues.mockResolvedValue({
+        items: [
+          {
+            id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
+            rule_id: "NAV_RULE", message: "Navigate test",
+            subject_iri: "http://example.org/ontology#Person",
+            details: null, created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+        ],
+        total: 1,
+        skip: 0,
+        limit: 200,
+      });
 
-    render(
-      <OntologySourceEditor
-        {...DEFAULT_PROPS}
-        onNavigateToClass={onNavigateToClass}
-      />
-    );
+      render(
+        <OntologySourceEditor
+          {...DEFAULT_PROPS}
+          onNavigateToClass={onNavigateToClass}
+        />
+      );
 
-    // Wait for diagnostics to be ready - the mock TurtleEditor receives onDiagnosticClick
-    // but since TurtleEditor is mocked as textarea, we test via the problems panel click instead
-    await waitFor(() => {
-      expect(screen.getByText("Navigate test")).toBeDefined();
-    });
-
-    vi.stubGlobal("Worker", OrigWorker);
+      // Verify the issue renders with its subject IRI local name
+      await waitFor(() => {
+        expect(screen.getByText("Navigate test")).toBeDefined();
+        expect(screen.getByText("Person")).toBeDefined();
+      });
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── Info issue count display ──
@@ -1182,33 +1184,35 @@ describe("OntologySourceEditor", () => {
     }
     vi.stubGlobal("Worker", PartialPositionWorker);
 
-    mockGetIssues.mockResolvedValue({
-      items: [
-        {
-          id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
-          rule_id: "ERR1", message: "Error with position",
-          subject_iri: "http://example.org/A", details: null,
-          created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-        {
-          id: "i2", run_id: "r1", project_id: "proj-1", issue_type: "warning",
-          rule_id: "WARN1", message: "Warning without position",
-          subject_iri: null, details: null,
-          created_at: "2024-01-01T00:00:00Z", resolved_at: null,
-        },
-      ],
-      total: 2,
-      skip: 0,
-      limit: 200,
-    });
+    try {
+      mockGetIssues.mockResolvedValue({
+        items: [
+          {
+            id: "i1", run_id: "r1", project_id: "proj-1", issue_type: "error",
+            rule_id: "ERR1", message: "Error with position",
+            subject_iri: "http://example.org/A", details: null,
+            created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+          {
+            id: "i2", run_id: "r1", project_id: "proj-1", issue_type: "warning",
+            rule_id: "WARN1", message: "Warning without position",
+            subject_iri: null, details: null,
+            created_at: "2024-01-01T00:00:00Z", resolved_at: null,
+          },
+        ],
+        total: 2,
+        skip: 0,
+        limit: 200,
+      });
 
-    render(<OntologySourceEditor {...DEFAULT_PROPS} />);
+      render(<OntologySourceEditor {...DEFAULT_PROPS} />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/1 with line numbers/)).toBeDefined();
-    });
-
-    vi.stubGlobal("Worker", OrigWorker);
+      await waitFor(() => {
+        expect(screen.getByText(/1 with line numbers/)).toBeDefined();
+      });
+    } finally {
+      vi.stubGlobal("Worker", OrigWorker);
+    }
   });
 
   // ── handleSave is no-op without onSave or without changes ──

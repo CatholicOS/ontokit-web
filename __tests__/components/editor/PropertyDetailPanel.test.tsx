@@ -1296,13 +1296,13 @@ describe("PropertyDetailPanel", () => {
     );
     // The first comment row should have onRemove defined
     const firstCommentRow = commentRows[0];
-    if (firstCommentRow && firstCommentRow.onRemove) {
-      const onRemove = firstCommentRow.onRemove as () => void;
-      onRemove();
-      await waitFor(() => {
-        expect(mockTriggerSave).toHaveBeenCalled();
-      });
-    }
+    expect(firstCommentRow).toBeDefined();
+    expect(firstCommentRow!.onRemove).toBeDefined();
+    const onRemove = firstCommentRow!.onRemove as () => void;
+    onRemove();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
   });
 
   // ── AnnotationRow onRemove for definitions ──
@@ -1330,13 +1330,13 @@ describe("PropertyDetailPanel", () => {
       (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#definition"
     );
     const firstDefRow = defRows[0];
-    if (firstDefRow && firstDefRow.onRemove) {
-      const onRemove = firstDefRow.onRemove as () => void;
-      onRemove();
-      await waitFor(() => {
-        expect(mockTriggerSave).toHaveBeenCalled();
-      });
-    }
+    expect(firstDefRow).toBeDefined();
+    expect(firstDefRow!.onRemove).toBeDefined();
+    const onRemoveDef = firstDefRow!.onRemove as () => void;
+    onRemoveDef();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
   });
 
   // ── RelationshipSection callbacks ──
@@ -1489,13 +1489,13 @@ describe("PropertyDetailPanel", () => {
       (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel"
     );
     const firstRow = annRows[0];
-    if (firstRow && firstRow.onRemove) {
-      const onRemove = firstRow.onRemove as () => void;
-      onRemove();
-      await waitFor(() => {
-        expect(mockTriggerSave).toHaveBeenCalled();
-      });
-    }
+    expect(firstRow).toBeDefined();
+    expect(firstRow!.onRemove).toBeDefined();
+    const onRemoveAnn = firstRow!.onRemove as () => void;
+    onRemoveAnn();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
   });
 
   // ── initEditState with seeAlso and isDefinedBy ──

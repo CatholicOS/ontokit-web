@@ -69,8 +69,21 @@ vi.mock("@/components/editor/standard/InlineAnnotationAdder", () => ({
 vi.mock("@/components/editor/standard/RelationshipSection", () => ({
   RelationshipSection: () => null,
 }));
+let _autoSaveBarProps: Record<string, unknown> = {};
 vi.mock("@/components/editor/AutoSaveAffordanceBar", () => ({
-  AutoSaveAffordanceBar: () => null,
+  AutoSaveAffordanceBar: (props: Record<string, unknown>) => {
+    _autoSaveBarProps = props;
+    return (
+      <div data-testid="auto-save-bar">
+        {typeof props.onCancel === "function" && (
+          <button data-testid="cancel-edit" onClick={props.onCancel as () => void}>Cancel</button>
+        )}
+        {typeof props.onManualSave === "function" && (
+          <button data-testid="manual-save" onClick={props.onManualSave as () => void}>Save</button>
+        )}
+      </div>
+    );
+  },
 }));
 vi.mock("@/components/editor/CrossReferencesPanel", () => ({
   CrossReferencesPanel: () => null,
@@ -444,7 +457,7 @@ describe("ClassDetailPanel", () => {
 
   // ── Returns null when no detail and no fallback ──
 
-  it("returns null when classDetail is null and no fallback", async () => {
+  it("shows error when classDetail 404s and fallback IRI doesn't match", async () => {
     mockGetClassDetail.mockRejectedValue(new Error("404 Class not found"));
     const fallback = {
       label: "Other",
