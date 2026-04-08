@@ -120,14 +120,16 @@ describe("useEditorModeStore", () => {
       });
     });
 
-    it("sets the theme to dark", () => {
+    it("sets the theme to dark and adds 'dark' class", () => {
       useEditorModeStore.getState().setTheme("dark");
       expect(useEditorModeStore.getState().theme).toBe("dark");
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith("dark");
     });
 
-    it("sets the theme to light", () => {
+    it("sets the theme to light and removes 'dark' class", () => {
       useEditorModeStore.getState().setTheme("light");
       expect(useEditorModeStore.getState().theme).toBe("light");
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith("dark");
     });
   });
 
