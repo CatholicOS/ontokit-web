@@ -38,6 +38,7 @@ describe("PropertyAssertionSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    searchMock.mockReset();
   });
 
   it("returns null when not editing and no assertions", () => {

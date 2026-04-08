@@ -175,7 +175,7 @@ describe("ClassDetailPanel", () => {
     // Never resolve the promise so it stays in loading state
     mockGetClassDetail.mockReturnValue(new Promise(() => {}));
     const { container } = render(<ClassDetailPanel {...DEFAULT_PROPS} />);
-    expect(container.querySelector(".animate-spin")).toBeDefined();
+    expect(container.querySelector(".animate-spin")).not.toBeNull();
   });
 
   // ── Error state ──
@@ -833,14 +833,7 @@ describe("ClassDetailPanel", () => {
     const user = userEvent.setup();
     const onUpdateClass = vi.fn();
 
-    // We need the AutoSaveAffordanceBar to render a cancel button.
-    // Since it's mocked to null, we test the cancelEditMode logic via
-    // entering then re-entering edit mode after a cancel.
-    // Instead, unmock AutoSaveAffordanceBar to render a cancel button.
-    // But it's simpler to just verify the state transition:
-    // Enter edit mode, verify input appears, then re-render with different classIri
-    // which triggers flushToGit.
-    const { rerender } = render(
+    render(
       <ClassDetailPanel
         {...DEFAULT_PROPS}
         canEdit={true}
@@ -857,7 +850,26 @@ describe("ClassDetailPanel", () => {
       expect(screen.getByDisplayValue("Person")).not.toBeNull();
     });
 
-    // Navigate to a different class triggers flushToGit
+    // Click the cancel button exposed by the AutoSaveAffordanceBar stub
+    const cancelBtn = screen.getByTestId("cancel-edit");
+    await user.click(cancelBtn);
+
+    await waitFor(() => {
+      expect(mockDiscardDraft).toHaveBeenCalled();
+    });
+  });
+
+  it("calls flushToGit when navigating to a different class", async () => {
+    const onUpdateClass = vi.fn();
+
+    const { rerender } = render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
     rerender(
       <ClassDetailPanel
         {...DEFAULT_PROPS}
@@ -1655,7 +1667,7 @@ describe("ClassDetailPanel", () => {
 
   // ── Returns null when classDetail is null and no matching fallback ──
 
-  it("returns null when classDetail is null and no fallback provided", async () => {
+  it("shows error when classDetail 404s and fallback IRI does not match", async () => {
     mockGetClassDetail.mockRejectedValue(new Error("404 Class not found"));
     const { container } = render(
       <ClassDetailPanel

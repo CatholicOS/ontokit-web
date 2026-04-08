@@ -48,7 +48,7 @@ vi.mock("@/lib/hooks/useEntityAutoSave", () => ({
 
 vi.mock("@/lib/stores/editorModeStore", () => ({
   useEditorModeStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ mode: "standard", continuousEditing: false, ...editorModeOverrides }),
+    selector({ editorMode: "standard", continuousEditing: false, ...editorModeOverrides }),
 }));
 
 vi.mock("@/lib/hooks/useIriLabels", () => ({
@@ -636,6 +636,16 @@ describe("PropertyDetailPanel", () => {
     await user.click(screen.getByText("Edit Item"));
     // Verify we are in edit mode
     expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+
+    // Trigger cancel via the captured AutoSaveAffordanceBar callback
+    expect(capturedAutoSaveBarProps).not.toBeNull();
+    const onCancel = capturedAutoSaveBarProps!.onCancel as () => void;
+    expect(onCancel).toBeDefined();
+    onCancel();
+
+    await waitFor(() => {
+      expect(mockDiscardDraft).toHaveBeenCalled();
+    });
   });
 
   // ── Continuous editing auto-entry ──
@@ -691,7 +701,7 @@ describe("PropertyDetailPanel", () => {
 
   // ── flushToGit on IRI change ──
 
-  it("calls flushToGit when propertyIri changes", () => {
+  it("calls flushToGit when propertyIri changes", async () => {
     const { rerender } = render(
       <PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />
     );
@@ -702,7 +712,9 @@ describe("PropertyDetailPanel", () => {
         canEdit={false}
       />
     );
-    expect(mockFlushToGit).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockFlushToGit).toHaveBeenCalled();
+    });
   });
 
   // ── Does not show characteristics for data properties ──
