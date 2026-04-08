@@ -54,9 +54,11 @@ vi.mock("@/lib/api/lint", () => ({
 class MockWorker {
   onmessage: ((e: MessageEvent) => void) | null = null;
   onerror: ((e: ErrorEvent) => void) | null = null;
+  private _pendingTimer: ReturnType<typeof setTimeout> | null = null;
   postMessage() {
     // Auto-respond with an empty but valid result so diagnosticsReady becomes true
-    setTimeout(() => {
+    this._pendingTimer = setTimeout(() => {
+      this._pendingTimer = null;
       this.onmessage?.({
         data: {
           diagnostics: [],
@@ -68,7 +70,12 @@ class MockWorker {
       } as unknown as MessageEvent);
     }, 0);
   }
-  terminate() {}
+  terminate() {
+    if (this._pendingTimer !== null) {
+      clearTimeout(this._pendingTimer);
+      this._pendingTimer = null;
+    }
+  }
 }
 vi.stubGlobal("Worker", MockWorker);
 // URL constructor is used with import.meta.url in the component
