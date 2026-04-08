@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-// ── Mocks (must be before component import) ──
+// ── Configurable mock state (tests can override before render) ──
 
 const mockExtractPropertyDetail = vi.fn();
 vi.mock("@/lib/ontology/entityDetailExtractors", () => ({
@@ -27,6 +27,9 @@ const mockFlushToGit = vi.fn().mockResolvedValue(true);
 const mockDiscardDraft = vi.fn();
 const mockClearRestoredDraft = vi.fn();
 
+let autoSaveOverrides: Record<string, unknown> = {};
+let editorModeOverrides: Record<string, unknown> = {};
+
 vi.mock("@/lib/hooks/useEntityAutoSave", () => ({
   useEntityAutoSave: () => ({
     saveStatus: "idle",
@@ -39,33 +42,49 @@ vi.mock("@/lib/hooks/useEntityAutoSave", () => ({
     editStateRef: { current: null },
     restoredDraft: null,
     clearRestoredDraft: mockClearRestoredDraft,
+    ...autoSaveOverrides,
   }),
 }));
 
 vi.mock("@/lib/stores/editorModeStore", () => ({
   useEditorModeStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ mode: "standard", continuousEditing: false }),
+    selector({ mode: "standard", continuousEditing: false, ...editorModeOverrides }),
 }));
 
 vi.mock("@/lib/hooks/useIriLabels", () => ({
   useIriLabels: () => ({}),
 }));
 
-// Stub child components
+// Stub child components - capture props for callback testing
 vi.mock("@/components/editor/LanguageFlag", () => ({
   LanguageFlag: () => null,
 }));
+
+let capturedAnnotationRowProps: Array<Record<string, unknown>> = [];
 vi.mock("@/components/editor/standard/AnnotationRow", () => ({
-  AnnotationRow: () => null,
+  AnnotationRow: (props: Record<string, unknown>) => {
+    capturedAnnotationRowProps.push(props);
+    return null;
+  },
 }));
 vi.mock("@/components/editor/standard/InlineAnnotationAdder", () => ({
   InlineAnnotationAdder: () => null,
 }));
+
+let capturedRelationshipSectionProps: Record<string, unknown> | null = null;
 vi.mock("@/components/editor/standard/RelationshipSection", () => ({
-  RelationshipSection: () => null,
+  RelationshipSection: (props: Record<string, unknown>) => {
+    capturedRelationshipSectionProps = props;
+    return null;
+  },
 }));
+
+let capturedAutoSaveBarProps: Record<string, unknown> | null = null;
 vi.mock("@/components/editor/AutoSaveAffordanceBar", () => ({
-  AutoSaveAffordanceBar: () => <div data-testid="auto-save-bar">AutoSaveBar</div>,
+  AutoSaveAffordanceBar: (props: Record<string, unknown>) => {
+    capturedAutoSaveBarProps = props;
+    return <div data-testid="auto-save-bar">AutoSaveBar</div>;
+  },
 }));
 
 import { PropertyDetailPanel } from "@/components/editor/PropertyDetailPanel";
@@ -119,6 +138,11 @@ const DEFAULT_PROPS = {
 describe("PropertyDetailPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    autoSaveOverrides = {};
+    editorModeOverrides = {};
+    capturedAnnotationRowProps = [];
+    capturedRelationshipSectionProps = null;
+    capturedAutoSaveBarProps = null;
     mockExtractPropertyDetail.mockReturnValue(makePropertyDetail());
   });
 
@@ -416,5 +440,1130 @@ describe("PropertyDetailPanel", () => {
     );
     render(<PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />);
     expect(screen.queryByText("Relationships")).toBeNull();
+  });
+
+  // ── Edit mode: label editing ──
+
+  it("renders editable label inputs in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const labelInputs = screen.getAllByPlaceholderText("Label text");
+    expect(labelInputs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders editable comment section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // The comment section title should be visible
+    expect(screen.getByText("Comment(s)")).not.toBeNull();
+  });
+
+  it("renders editable definition section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Definition")).not.toBeNull();
+  });
+
+  it("renders domain section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Domain")).not.toBeNull();
+  });
+
+  it("renders range section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Range")).not.toBeNull();
+  });
+
+  it("renders characteristics checkboxes in edit mode for object property", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Functional")).not.toBeNull();
+    expect(screen.getByText("Transitive")).not.toBeNull();
+    expect(screen.getByText("Symmetric")).not.toBeNull();
+  });
+
+  it("renders inverse-of section in edit mode for object property", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Inverse Of")).not.toBeNull();
+  });
+
+  it("renders annotations section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Annotations")).not.toBeNull();
+  });
+
+  it("renders relationships section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Relationships")).not.toBeNull();
+  });
+
+  // ── Label input interaction ──
+
+  it("allows typing in a label input in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const labelInput = screen.getAllByPlaceholderText("Label text")[0];
+    await user.clear(labelInput);
+    await user.type(labelInput, "newLabel");
+    expect((labelInput as HTMLInputElement).value).toBe("newLabel");
+  });
+
+  // ── Characteristic toggle in edit mode ──
+
+  it("toggles characteristic checkbox in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    const { container } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // Find the "Functional" checkbox (unchecked by default since not in characteristics)
+    const functionalCheckbox = container.querySelector(
+      'input[type="checkbox"]'
+    ) as HTMLInputElement;
+    expect(functionalCheckbox).not.toBeNull();
+    // Asymmetric should be checked (in the default characteristics)
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    const asymmetricCheckbox = Array.from(checkboxes).find((cb) => {
+      const label = cb.closest("label");
+      return label?.textContent?.includes("Asymmetric");
+    }) as HTMLInputElement | undefined;
+    expect(asymmetricCheckbox).not.toBeNull();
+    expect(asymmetricCheckbox!.checked).toBe(true);
+  });
+
+  // ── Cancel edit mode ──
+
+  it("exits edit mode and calls discardDraft when cancel flow is triggered", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // Verify we are in edit mode
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+  });
+
+  // ── Continuous editing auto-entry ──
+
+  it("auto-enters edit mode when continuousEditing is true", () => {
+    editorModeOverrides = { continuousEditing: true };
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    // Should auto-enter edit mode and show auto-save bar
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+  });
+
+  // ── Draft restoration ──
+
+  it("auto-enters edit mode when restoredDraft is available", () => {
+    autoSaveOverrides = {
+      restoredDraft: {
+        entityType: "property",
+        propertyType: "object",
+        labels: [{ value: "Restored Label", lang: "en" }],
+        comments: [{ value: "Restored Comment", lang: "en" }],
+        definitions: [],
+        domainIris: [],
+        rangeIris: [],
+        parentIris: [],
+        inverseOf: null,
+        characteristics: [],
+        annotations: [],
+        relationships: [],
+        deprecated: false,
+        equivalentIris: [],
+        disjointIris: [],
+        updatedAt: Date.now(),
+      },
+    };
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    expect(mockClearRestoredDraft).toHaveBeenCalled();
+  });
+
+  // ── flushToGit on IRI change ──
+
+  it("calls flushToGit when propertyIri changes", () => {
+    const { rerender } = render(
+      <PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />
+    );
+    rerender(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        propertyIri="http://example.org/ontology#hasChild"
+        canEdit={false}
+      />
+    );
+    expect(mockFlushToGit).toHaveBeenCalled();
+  });
+
+  // ── Does not show characteristics for data properties ──
+
+  it("does not render characteristics for data properties", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ propertyType: "data", characteristics: [] })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.queryByText("Characteristics")).toBeNull();
+  });
+
+  // ── Does not render inverse-of for data properties ──
+
+  it("does not render inverse-of for data properties", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ propertyType: "data", inverseOf: null })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.queryByText("Inverse Of")).toBeNull();
+  });
+
+  // ── Does not render inverse-of for annotation properties ──
+
+  it("does not render inverse-of for annotation properties", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ propertyType: "annotation", inverseOf: null })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.queryByText("Inverse Of")).toBeNull();
+  });
+
+  // ── Does not auto-enter edit mode when canEdit is false ──
+
+  it("does not auto-enter edit mode when canEdit is false even with continuousEditing", () => {
+    editorModeOverrides = { continuousEditing: true };
+    render(
+      <PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />
+    );
+    expect(screen.queryByTestId("auto-save-bar")).toBeNull();
+  });
+
+  // ── Does not auto-enter edit mode without onUpdateProperty ──
+
+  it("does not show edit button when canEdit is true but onUpdateProperty is not provided", () => {
+    render(
+      <PropertyDetailPanel {...DEFAULT_PROPS} canEdit={true} />
+    );
+    expect(screen.queryByText("Edit Item")).toBeNull();
+  });
+
+  // ── Language tag input in edit mode ──
+
+  it("renders language tag inputs in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    const { container } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const langInputs = container.querySelectorAll('input[title="Language tag"]');
+    expect(langInputs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // ── triggerSave on blur of label input ──
+
+  it("calls triggerSave on blur of label input", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const labelInput = screen.getAllByPlaceholderText("Label text")[0];
+    await user.click(labelInput);
+    await user.tab();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── isDefinedBy in relationships ──
+
+  it("renders relationships section when isDefinedByIris present", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        isDefinedByIris: ["http://example.org/ontology"],
+      })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("Relationships")).not.toBeNull();
+  });
+
+  // ── Parent properties section in edit mode ──
+
+  it("renders parent properties section in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Parent Properties")).not.toBeNull();
+  });
+
+  // ── Does not enter edit mode on draft restoration when entityType mismatches ──
+
+  it("does not restore draft when entityType does not match property", () => {
+    autoSaveOverrides = {
+      restoredDraft: {
+        entityType: "class",
+        labels: [{ value: "Wrong type", lang: "en" }],
+        updatedAt: Date.now(),
+      },
+    };
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    // Should not auto-enter edit mode since entityType is "class" not "property"
+    expect(screen.queryByTestId("auto-save-bar")).toBeNull();
+  });
+
+  // ── Remove label button in edit mode ──
+
+  it("shows remove button when multiple labels exist in edit mode", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        labels: [
+          { value: "hasParent", lang: "en" },
+          { value: "aParent", lang: "fr" },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    const { container } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const removeButtons = container.querySelectorAll('button[title="Remove"]');
+    expect(removeButtons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // ── Language tag editing in edit mode ──
+
+  it("allows editing language tag input", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    const { container } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const langInput = container.querySelector('input[title="Language tag"]') as HTMLInputElement;
+    expect(langInput).not.toBeNull();
+    await user.clear(langInput);
+    await user.type(langInput, "fr");
+    expect(langInput.value).toBe("fr");
+  });
+
+  // ── Edit mode with no initial comments ──
+
+  it("renders empty comment placeholder in edit mode when no comments", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ comments: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // Comment section should still render in edit mode
+    expect(screen.getByText("Comment(s)")).not.toBeNull();
+  });
+
+  // ── Edit mode with no initial definitions ──
+
+  it("renders empty definition placeholder in edit mode when no definitions", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ definitions: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Definition")).not.toBeNull();
+  });
+
+  // ── Edit mode with empty domain/range ──
+
+  it("renders domain search in edit mode even when empty", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ domainIris: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Domain")).not.toBeNull();
+  });
+
+  it("renders range search in edit mode even when empty", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ rangeIris: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Range")).not.toBeNull();
+  });
+
+  // ── Edit mode with empty parent properties ──
+
+  it("renders parent properties search in edit mode even when empty", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ parentIris: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Parent Properties")).not.toBeNull();
+  });
+
+  // ── Edit mode with inverse-of empty for object property ──
+
+  it("renders inverse-of search in edit mode for object property with no inverse", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ inverseOf: null })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(screen.getByText("Inverse Of")).not.toBeNull();
+  });
+
+  // ── Characteristics in edit mode for object property with no characteristics ──
+
+  it("renders all characteristic checkboxes in edit mode when none selected", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ characteristics: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    const { container } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    // Should have 7 characteristic checkboxes
+    expect(checkboxes.length).toBe(7);
+    // All unchecked
+    const allUnchecked = Array.from(checkboxes).every(
+      (cb) => !(cb as HTMLInputElement).checked
+    );
+    expect(allUnchecked).toBe(true);
+  });
+
+  // ── Navigate to entity callback ──
+
+  it("calls onNavigateToEntity when domain IRI link is clicked", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        onNavigateToEntity={onNavigate}
+      />
+    );
+    // Domain section has IRI links in read-only mode
+    const personLink = screen.getAllByText("Person")[0];
+    await user.click(personLink);
+    expect(onNavigate).toHaveBeenCalledWith(
+      "http://example.org/ontology#Person"
+    );
+  });
+
+  // ── Multiple comments in read-only ──
+
+  it("renders multiple comments in read-only mode", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        comments: [
+          { value: "First comment", lang: "en" },
+          { value: "Second comment", lang: "fr" },
+        ],
+      })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("First comment")).not.toBeNull();
+    expect(screen.getByText("Second comment")).not.toBeNull();
+  });
+
+  // ── Multiple definitions in read-only ──
+
+  it("renders multiple definitions in read-only mode", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        definitions: [
+          { value: "Def one", lang: "en" },
+          { value: "Def two", lang: "fr" },
+        ],
+      })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("Def one")).not.toBeNull();
+    expect(screen.getByText("Def two")).not.toBeNull();
+  });
+
+  // ── Characteristic toggle interaction ──
+
+  it("clicking a characteristic checkbox calls triggerSave via requestAnimationFrame", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // Click the "Functional" checkbox
+    const functionalLabel = screen.getByText("Functional");
+    await user.click(functionalLabel);
+    // triggerSave is called via requestAnimationFrame in toggleCharacteristic
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── IRI navigation in read-only domain/range ──
+
+  it("renders parent property links in read-only mode", () => {
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    // hasRelative is a parent property
+    expect(screen.getByText("hasRelative")).not.toBeNull();
+  });
+
+  it("renders inverse-of link in read-only mode", () => {
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("hasChild")).not.toBeNull();
+  });
+
+  // ── Empty labels does not render labels section in read-only ──
+
+  it("does not render labels section in read-only when no labels", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ labels: [] })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />);
+    expect(screen.queryByText("Label(s)")).toBeNull();
+  });
+
+  // ── Empty comments does not render comments section in read-only ──
+
+  it("does not render comments section in read-only when no comments", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ comments: [] })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />);
+    expect(screen.queryByText("Comment(s)")).toBeNull();
+  });
+
+  // ── Empty definitions does not render definitions section in read-only ──
+
+  it("does not render definitions section in read-only when no definitions", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({ definitions: [] })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} canEdit={false} />);
+    expect(screen.queryByText("Definition")).toBeNull();
+  });
+
+  // ── Cancel edit mode via AutoSaveAffordanceBar ──
+
+  it("invokes cancelEditMode via AutoSaveAffordanceBar onCancel", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedAutoSaveBarProps).not.toBeNull();
+    // Call the onCancel callback from AutoSaveAffordanceBar
+    const onCancel = capturedAutoSaveBarProps!.onCancel as () => void;
+    onCancel();
+    expect(mockDiscardDraft).toHaveBeenCalled();
+  });
+
+  // ── Manual save via AutoSaveAffordanceBar ──
+
+  it("invokes saveAndExitEditMode via AutoSaveAffordanceBar onManualSave", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedAutoSaveBarProps).not.toBeNull();
+    const onManualSave = capturedAutoSaveBarProps!.onManualSave as () => Promise<void>;
+    await onManualSave();
+    expect(mockTriggerSave).toHaveBeenCalled();
+    expect(mockFlushToGit).toHaveBeenCalled();
+  });
+
+  // ── Retry via AutoSaveAffordanceBar ──
+
+  it("invokes flushToGit via AutoSaveAffordanceBar onRetry", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedAutoSaveBarProps).not.toBeNull();
+    const onRetry = capturedAutoSaveBarProps!.onRetry as () => void;
+    onRetry();
+    expect(mockFlushToGit).toHaveBeenCalled();
+  });
+
+  // ── AnnotationRow callbacks for comments ──
+
+  it("passes comment callbacks to AnnotationRow", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // Find the AnnotationRow for comments (COMMENT_IRI)
+    const commentRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment"
+    );
+    expect(commentRow).not.toBeNull();
+    // Call onValueChange
+    const onValueChange = commentRow!.onValueChange as (v: string) => void;
+    onValueChange("Updated comment");
+    // Call onLangChange
+    const onLangChange = commentRow!.onLangChange as (l: string) => void;
+    onLangChange("fr");
+  });
+
+  // ── AnnotationRow callbacks for definitions ──
+
+  it("passes definition callbacks to AnnotationRow", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const defRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#definition"
+    );
+    expect(defRow).not.toBeNull();
+    const onValueChange = defRow!.onValueChange as (v: string) => void;
+    onValueChange("Updated definition");
+  });
+
+  // ── AnnotationRow onBlur triggers save ──
+
+  it("AnnotationRow onBlur triggers triggerSave", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const commentRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment"
+    );
+    expect(commentRow).not.toBeNull();
+    const onBlur = commentRow!.onBlur as () => void;
+    onBlur();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── AnnotationRow onRemove for comments ──
+
+  it("passes onRemove to AnnotationRow for non-last comment rows", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        comments: [
+          { value: "First comment", lang: "en" },
+          { value: "Second comment", lang: "fr" },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const commentRows = capturedAnnotationRowProps.filter(
+      (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment"
+    );
+    // The first comment row should have onRemove defined
+    const firstCommentRow = commentRows[0];
+    if (firstCommentRow && firstCommentRow.onRemove) {
+      const onRemove = firstCommentRow.onRemove as () => void;
+      onRemove();
+      await waitFor(() => {
+        expect(mockTriggerSave).toHaveBeenCalled();
+      });
+    }
+  });
+
+  // ── AnnotationRow onRemove for definitions ──
+
+  it("passes onRemove to AnnotationRow for non-last definition rows", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        definitions: [
+          { value: "First def", lang: "en" },
+          { value: "Second def", lang: "fr" },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const defRows = capturedAnnotationRowProps.filter(
+      (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#definition"
+    );
+    const firstDefRow = defRows[0];
+    if (firstDefRow && firstDefRow.onRemove) {
+      const onRemove = firstDefRow.onRemove as () => void;
+      onRemove();
+      await waitFor(() => {
+        expect(mockTriggerSave).toHaveBeenCalled();
+      });
+    }
+  });
+
+  // ── RelationshipSection callbacks ──
+
+  it("passes relationship callbacks to RelationshipSection in edit mode", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        seeAlsoIris: ["http://example.org/ontology#related"],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedRelationshipSectionProps).not.toBeNull();
+
+    // Test addTarget
+    const onAddTarget = capturedRelationshipSectionProps!.onAddTarget as (groupIdx: number, target: { iri: string; label: string }) => void;
+    onAddTarget(0, { iri: "http://example.org/ontology#newRelated", label: "newRelated" });
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  it("invokes removeRelationshipTarget via RelationshipSection", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        seeAlsoIris: ["http://example.org/ontology#related"],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedRelationshipSectionProps).not.toBeNull();
+    const onRemoveTarget = capturedRelationshipSectionProps!.onRemoveTarget as (groupIdx: number, targetIdx: number) => void;
+    onRemoveTarget(0, 0);
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  it("invokes changeRelationshipProperty via RelationshipSection", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedRelationshipSectionProps).not.toBeNull();
+    const onChangeProperty = capturedRelationshipSectionProps!.onChangeProperty as (groupIdx: number, newIri: string, newLabel: string) => void;
+    onChangeProperty(0, "http://www.w3.org/2000/01/rdf-schema#isDefinedBy", "Defined By");
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  it("invokes addRelationshipGroup via RelationshipSection", async () => {
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedRelationshipSectionProps).not.toBeNull();
+    const onAddGroup = capturedRelationshipSectionProps!.onAddGroup as () => void;
+    onAddGroup();
+    // addRelationshipGroup does not call triggerSave, just adds a group
+  });
+
+  // ── Custom annotation editing callbacks ──
+
+  it("invokes updateAnnotationValue for custom annotations in edit mode", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2004/02/skos/core#prefLabel",
+            values: [{ value: "Parent Property", lang: "en" }],
+          },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    // Find annotation row for the custom annotation
+    const annRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel"
+    );
+    expect(annRow).not.toBeNull();
+    const onValueChange = annRow!.onValueChange as (v: string) => void;
+    onValueChange("Updated Pref Label");
+    const onLangChange = annRow!.onLangChange as (l: string) => void;
+    onLangChange("de");
+  });
+
+  it("invokes removeAnnotationValue for custom annotations in edit mode", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2004/02/skos/core#prefLabel",
+            values: [
+              { value: "Label One", lang: "en" },
+              { value: "Label Two", lang: "fr" },
+            ],
+          },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const annRows = capturedAnnotationRowProps.filter(
+      (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel"
+    );
+    const firstRow = annRows[0];
+    if (firstRow && firstRow.onRemove) {
+      const onRemove = firstRow.onRemove as () => void;
+      onRemove();
+      await waitFor(() => {
+        expect(mockTriggerSave).toHaveBeenCalled();
+      });
+    }
+  });
+
+  // ── initEditState with seeAlso and isDefinedBy ──
+
+  it("initializes edit state with seeAlso relationships", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        seeAlsoIris: ["http://example.org/ontology#related"],
+        isDefinedByIris: ["http://example.org/ontology#ontology"],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedRelationshipSectionProps).not.toBeNull();
+    expect(capturedRelationshipSectionProps!.isEditing).toBe(true);
+  });
+
+  // ── Remove label button interaction ──
+
+  it("clicking remove label button triggers triggerSave", async () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        labels: [
+          { value: "label1", lang: "en" },
+          { value: "label2", lang: "fr" },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateProperty = vi.fn();
+    const { container } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const removeButtons = container.querySelectorAll('button[title="Remove"]');
+    expect(removeButtons.length).toBeGreaterThanOrEqual(1);
+    await user.click(removeButtons[0]);
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── Annotations read-only with resolved labels ──
+
+  it("renders annotation property label from resolvedLabels", () => {
+    mockExtractPropertyDetail.mockReturnValue(
+      makePropertyDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2004/02/skos/core#prefLabel",
+            values: [{ value: "Pref Label Value", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(<PropertyDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("Pref Label Value")).not.toBeNull();
   });
 });

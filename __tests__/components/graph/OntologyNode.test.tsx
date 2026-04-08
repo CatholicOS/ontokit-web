@@ -4,14 +4,14 @@ import { OntologyNode } from "@/components/graph/OntologyNode";
 import type { OntologyNodeData } from "@/components/graph/OntologyNode";
 
 vi.mock("@xyflow/react", () => ({
-  Handle: ({ type, position }: any) => (
+  Handle: ({ type, position }: { type: string; position: string }) => (
     <div data-testid={`handle-${type}`} data-position={position} />
   ),
   Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
 }));
 
 vi.mock("@/lib/utils", () => ({
-  cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 describe("OntologyNode", () => {

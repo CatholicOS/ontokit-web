@@ -101,8 +101,6 @@ import { AnnotationEditor, AnnotationPropertyPicker } from "@/components/editor/
 
 const rdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label";
 const rdfsComment = "http://www.w3.org/2000/01/rdf-schema#comment";
-const _skosPrefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel";
-const _skosDefinition = "http://www.w3.org/2004/02/skos/core#definition";
 
 const sampleAnnotations: AnnotationUpdate[] = [
   {

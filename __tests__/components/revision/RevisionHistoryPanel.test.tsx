@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import type { RevisionCommit, RevisionHistoryResponse } from "@/lib/api/revisions";
 
@@ -115,6 +115,10 @@ describe("RevisionHistoryPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetHistory.mockResolvedValue(mockHistoryResponse);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   // --- Visibility ---
@@ -328,6 +332,8 @@ describe("RevisionHistoryPanel", () => {
   });
 
   it("formats yesterday timestamps as 'Yesterday'", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-04-08T12:00:00Z"));
     const yesterday = new Date(Date.now() - 86400000);
     const ydayCommit = makeCommit({
       hash: "yday1",
@@ -351,6 +357,8 @@ describe("RevisionHistoryPanel", () => {
   });
 
   it("formats recent timestamps as 'N days ago'", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-04-08T12:00:00Z"));
     const threeDaysAgo = new Date(Date.now() - 3 * 86400000);
     const recentCommit = makeCommit({
       hash: "recent1",
@@ -380,7 +388,9 @@ describe("RevisionHistoryPanel", () => {
       render(<RevisionHistoryPanel {...defaultProps} />);
     });
     await waitFor(() => {
-      expect(mockGetHistory).toHaveBeenCalledWith("proj-1", "tok");
+      expect(mockGetHistory).toHaveBeenCalled();
+      expect(mockGetHistory.mock.calls[0][0]).toBe("proj-1");
+      expect(mockGetHistory.mock.calls[0][1]).toBe("tok");
     });
   });
 

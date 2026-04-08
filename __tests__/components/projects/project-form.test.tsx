@@ -132,7 +132,7 @@ describe("ProjectForm", () => {
     await user.type(screen.getByLabelText(/Project Name/), "Test");
     await user.click(screen.getByRole("button", { name: "Create Project" }));
 
-    expect(screen.getByText("Server error")).toBeDefined();
+    expect(await screen.findByText("Server error")).toBeDefined();
   });
 
   it("displays generic error for non-Error throws", async () => {
@@ -143,7 +143,7 @@ describe("ProjectForm", () => {
     await user.type(screen.getByLabelText(/Project Name/), "Test");
     await user.click(screen.getByRole("button", { name: "Create Project" }));
 
-    expect(screen.getByText("An error occurred")).toBeDefined();
+    expect(await screen.findByText("An error occurred")).toBeDefined();
   });
 
   it("shows 'Saving...' when isLoading is true", () => {

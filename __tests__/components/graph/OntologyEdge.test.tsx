@@ -1,9 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { Position } from "@xyflow/react";
 import { OntologyEdge } from "@/components/graph/OntologyEdge";
 
 vi.mock("@xyflow/react", () => ({
-  BaseEdge: ({ id, path, style, markerEnd }: any) => (
+  BaseEdge: ({ id, path, style, markerEnd }: { id: string; path: string; style?: React.CSSProperties; markerEnd?: string }) => (
     <path
       data-testid={`base-edge-${id}`}
       d={path}
@@ -11,10 +12,11 @@ vi.mock("@xyflow/react", () => ({
       data-marker-end={markerEnd || ""}
     />
   ),
-  EdgeLabelRenderer: ({ children }: any) => (
+  EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="edge-label-renderer">{children}</div>
   ),
-  getBezierPath: () => ["M0,0 C10,10 20,20 30,30", 15, 15],
+  getBezierPath: (): [string, number, number] => ["M0,0 C10,10 20,20 30,30", 15, 15],
+  Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
 }));
 
 describe("OntologyEdge", () => {
@@ -24,8 +26,8 @@ describe("OntologyEdge", () => {
     sourceY: 0,
     targetX: 100,
     targetY: 100,
-    sourcePosition: "top" as any,
-    targetPosition: "bottom" as any,
+    sourcePosition: Position.Top,
+    targetPosition: Position.Bottom,
     source: "node-a",
     target: "node-b",
     animated: false,

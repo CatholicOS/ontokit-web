@@ -6,17 +6,17 @@ import { render, screen, fireEvent } from "@testing-library/react";
 const mockUseGraphData = vi.fn();
 
 vi.mock("@xyflow/react", () => ({
-  ReactFlow: ({ children, ...props }: any) => (
-    <div data-testid="react-flow" data-node-count={props.nodes?.length}>
+  ReactFlow: ({ children, nodes }: { children?: React.ReactNode; nodes?: unknown[] }) => (
+    <div data-testid="react-flow" data-node-count={nodes?.length}>
       {children}
     </div>
   ),
   MiniMap: () => <div data-testid="minimap" />,
-  Controls: ({ children }: any) => <div data-testid="controls">{children}</div>,
+  Controls: ({ children }: { children?: React.ReactNode }) => <div data-testid="controls">{children}</div>,
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },
-  useNodesState: (initial: any) => [initial || [], vi.fn(), vi.fn()],
-  useEdgesState: (initial: any) => [initial || [], vi.fn(), vi.fn()],
+  useNodesState: (initial: unknown[]) => [initial || [], vi.fn(), vi.fn()],
+  useEdgesState: (initial: unknown[]) => [initial || [], vi.fn(), vi.fn()],
 }));
 
 vi.mock("@xyflow/react/dist/style.css", () => ({}));

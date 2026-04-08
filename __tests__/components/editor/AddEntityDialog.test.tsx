@@ -124,9 +124,34 @@ describe("AddEntityDialog", () => {
       expect.objectContaining({
         label: "NewEntity",
         entityType: "class",
+        iri: expect.any(String),
       })
     );
     expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("includes parentIri in onConfirm payload when creating a subclass", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <AddEntityDialog
+        {...defaultProps}
+        parentIri="http://example.org/ontology#Animal"
+        parentLabel="Animal"
+      />
+    );
+
+    const input = screen.getByPlaceholderText("e.g., Privileged Altar");
+    await user.type(input, "Dog");
+    await user.click(screen.getByText("Create"));
+
+    expect(defaultProps.onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: "Dog",
+        entityType: "class",
+        iri: expect.any(String),
+        parentIri: "http://example.org/ontology#Animal",
+      })
+    );
   });
 
   it("calls onOpenChange(false) on Cancel click", async () => {

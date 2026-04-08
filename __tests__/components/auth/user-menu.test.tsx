@@ -110,7 +110,7 @@ describe("UserMenu", () => {
     expect(screen.queryByText("Sign out")).toBeNull();
   });
 
-  it("signs out and redirects to Zitadel on sign out click", async () => {
+  it("calls signOut with redirect:false on sign out click", async () => {
     mockUseSession.mockReturnValue({
       data: { user: { name: "Alice", email: "alice@test.com", image: null } },
       status: "authenticated",
