@@ -50,7 +50,7 @@ vi.mock("@/lib/hooks/useAutoSave", () => ({
 
 vi.mock("@/lib/stores/editorModeStore", () => ({
   useEditorModeStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ mode: "standard", continuousEditing: false, ...editorModeOverrides }),
+    selector({ editorMode: "standard", continuousEditing: false, ...editorModeOverrides }),
 }));
 
 // Stub child components
@@ -2047,8 +2047,14 @@ describe("ClassDetailPanel", () => {
       expect(capturedRelationshipSectionProps).not.toBeNull();
     });
 
+    const groupsBefore = (capturedRelationshipSectionProps!.groups as unknown[]).length;
     const onAddGroup = capturedRelationshipSectionProps!.onAddGroup as () => void;
     onAddGroup();
+
+    await waitFor(() => {
+      const groupsAfter = (capturedRelationshipSectionProps!.groups as unknown[]).length;
+      expect(groupsAfter).toBe(groupsBefore + 1);
+    });
   });
 
   // ── RelationshipSection onSaveNeeded callback ──

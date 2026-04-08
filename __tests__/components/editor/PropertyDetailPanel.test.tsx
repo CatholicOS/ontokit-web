@@ -1464,9 +1464,14 @@ describe("PropertyDetailPanel", () => {
     );
     await user.click(screen.getByText("Edit Item"));
     expect(capturedRelationshipSectionProps).not.toBeNull();
+    const groupsBefore = (capturedRelationshipSectionProps!.groups as unknown[]).length;
     const onAddGroup = capturedRelationshipSectionProps!.onAddGroup as () => void;
     onAddGroup();
-    // addRelationshipGroup does not call triggerSave, just adds a group
+
+    await waitFor(() => {
+      const groupsAfter = (capturedRelationshipSectionProps!.groups as unknown[]).length;
+      expect(groupsAfter).toBe(groupsBefore + 1);
+    });
   });
 
   // ── Custom annotation editing callbacks ──

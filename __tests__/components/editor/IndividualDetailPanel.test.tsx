@@ -39,7 +39,7 @@ vi.mock("@/lib/hooks/useEntityAutoSave", () => ({
 
 vi.mock("@/lib/stores/editorModeStore", () => ({
   useEditorModeStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ mode: "standard", continuousEditing: false, ...editorModeOverrides }),
+    selector({ editorMode: "standard", continuousEditing: false, ...editorModeOverrides }),
 }));
 
 vi.mock("@/lib/hooks/useIriLabels", () => ({
@@ -171,7 +171,7 @@ describe("IndividualDetailPanel", () => {
         canEdit={false}
       />
     );
-    expect(container.querySelector(".animate-spin")).toBeDefined();
+    expect(container.querySelector(".animate-spin")).not.toBeNull();
   });
 
   // ── Not found state ──
@@ -1187,8 +1187,23 @@ describe("IndividualDetailPanel", () => {
     expect(commentRow).not.toBeNull();
     const onValueChange = commentRow!.onValueChange as (v: string) => void;
     onValueChange("Updated comment");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment" && p.value === "Updated comment"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+
     const onLangChange = commentRow!.onLangChange as (l: string) => void;
     onLangChange("fr");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment" && p.lang === "fr"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 
   // ── AnnotationRow callbacks for definitions ──
@@ -1259,13 +1274,13 @@ describe("IndividualDetailPanel", () => {
       (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment"
     );
     const firstCommentRow = commentRows[0];
-    if (firstCommentRow && firstCommentRow.onRemove) {
-      const onRemove = firstCommentRow.onRemove as () => void;
-      onRemove();
-      await waitFor(() => {
-        expect(mockTriggerSave).toHaveBeenCalled();
-      });
-    }
+    expect(firstCommentRow).toBeDefined();
+    expect(firstCommentRow!.onRemove).toBeDefined();
+    const onRemove = firstCommentRow!.onRemove as () => void;
+    onRemove();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
   });
 
   // ── AnnotationRow onRemove for definitions ──
@@ -1293,13 +1308,13 @@ describe("IndividualDetailPanel", () => {
       (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#definition"
     );
     const firstDefRow = defRows[0];
-    if (firstDefRow && firstDefRow.onRemove) {
-      const onRemove = firstDefRow.onRemove as () => void;
-      onRemove();
-      await waitFor(() => {
-        expect(mockTriggerSave).toHaveBeenCalled();
-      });
-    }
+    expect(firstDefRow).toBeDefined();
+    expect(firstDefRow!.onRemove).toBeDefined();
+    const onRemoveDef = firstDefRow!.onRemove as () => void;
+    onRemoveDef();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
   });
 
   // ── PropertyAssertionSection callbacks ──
@@ -1558,13 +1573,13 @@ describe("IndividualDetailPanel", () => {
       (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel"
     );
     const firstRow = annRows[0];
-    if (firstRow && firstRow.onRemove) {
-      const onRemove = firstRow.onRemove as () => void;
-      onRemove();
-      await waitFor(() => {
-        expect(mockTriggerSave).toHaveBeenCalled();
-      });
-    }
+    expect(firstRow).toBeDefined();
+    expect(firstRow!.onRemove).toBeDefined();
+    const onRemoveAnn = firstRow!.onRemove as () => void;
+    onRemoveAnn();
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
   });
 
   // ── initEditState with seeAlso and isDefinedBy ──
