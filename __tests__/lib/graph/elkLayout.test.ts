@@ -81,6 +81,12 @@ describe("computeLayout", () => {
     expect(graph.layoutOptions["elk.direction"]).toBe("LEFT");
   });
 
+  it("propagates ELK layout errors", async () => {
+    mockLayout.mockRejectedValueOnce(new Error("ELK layout failed"));
+
+    await expect(computeLayout([], [])).rejects.toThrow("ELK layout failed");
+  });
+
   it("maps node and edge properties to ELK format", async () => {
     const nodes: OntologyGraphNode[] = [
       { id: "N1", label: "Node 1", nodeType: "focus" },
