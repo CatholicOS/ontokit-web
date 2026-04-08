@@ -121,12 +121,12 @@ describe("UserSearchInput", () => {
   it("shows selected user name in input after selection", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     mockSearchUsers.mockResolvedValue({ items: mockUsers, total: 2 });
-    render(<UserSearchInput {...defaultProps} value="u-1" />);
+    render(<UserSearchInput {...defaultProps} />);
 
-    await user.type(
-      screen.getByPlaceholderText("Search by name, username, or email..."),
-      "ali"
-    );
+    const input = screen.getByPlaceholderText("Search by name, username, or email...") as HTMLInputElement;
+    expect(input.value).toBe("");
+
+    await user.type(input, "ali");
     await act(async () => {
       vi.advanceTimersByTime(400);
     });
@@ -141,7 +141,6 @@ describe("UserSearchInput", () => {
     });
 
     // After selection, the input should show the name
-    const input = screen.getByPlaceholderText("Search by name, username, or email...") as HTMLInputElement;
     expect(input.value).toBe("Alice Smith");
   });
 
