@@ -8,25 +8,46 @@
 import { vi } from "vitest";
 
 export function branchContextMock(overrides?: {
-  activeBranch?: string;
-  branches?: string[];
+  currentBranch?: string;
+  branches?: Array<{ name: string; is_default: boolean }>;
   isLoading?: boolean;
+  error?: string | null;
+  isFeatureBranch?: boolean;
+  pendingChanges?: boolean;
+  hasGitHubRemote?: boolean;
+  lastSyncAt?: string | null;
+  syncStatus?: string | null;
 }) {
-  const switchBranch = vi.fn();
-  const refreshBranches = vi.fn();
+  const switchBranch = vi.fn().mockResolvedValue(undefined);
+  const refreshBranches = vi.fn().mockResolvedValue(undefined);
+  const createBranch = vi.fn().mockResolvedValue({ name: "new-branch", is_default: false });
+  const deleteBranch = vi.fn().mockResolvedValue(undefined);
+  const setPendingChanges = vi.fn();
 
   return {
     useBranch: () => ({
-      activeBranch: overrides?.activeBranch ?? "main",
-      branches: overrides?.branches ?? ["main", "dev"],
+      currentBranch: overrides?.currentBranch ?? "main",
+      branches: overrides?.branches ?? [{ name: "main", is_default: true }],
+      defaultBranch: "main",
       isLoading: overrides?.isLoading ?? false,
+      error: overrides?.error ?? null,
+      isFeatureBranch: overrides?.isFeatureBranch ?? false,
+      pendingChanges: overrides?.pendingChanges ?? false,
+      hasGitHubRemote: overrides?.hasGitHubRemote ?? false,
+      lastSyncAt: overrides?.lastSyncAt ?? null,
+      syncStatus: overrides?.syncStatus ?? null,
       switchBranch,
       refreshBranches,
-      defaultBranch: "main",
+      createBranch,
+      deleteBranch,
+      setPendingChanges,
     }),
     BranchProvider: ({ children }: { children: React.ReactNode }) => children,
     __switchBranch: switchBranch,
     __refreshBranches: refreshBranches,
+    __createBranch: createBranch,
+    __deleteBranch: deleteBranch,
+    __setPendingChanges: setPendingChanges,
   };
 }
 
