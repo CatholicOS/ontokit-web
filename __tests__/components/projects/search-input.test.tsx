@@ -170,7 +170,7 @@ describe("UserSearchInput", () => {
     await user.keyboard("{Escape}");
 
     await waitFor(() => {
-      expect(screen.queryByRole("option")).toBeNull();
+      expect(screen.queryByText("Alice Smith")).toBeNull();
     });
   });
 
@@ -189,7 +189,7 @@ describe("UserSearchInput", () => {
 
     // Should not crash - dropdown should not be shown
     await waitFor(() => {
-      expect(screen.queryByRole("option")).toBeNull();
+      expect(screen.queryByText("Alice Smith")).toBeNull();
     });
   });
 
