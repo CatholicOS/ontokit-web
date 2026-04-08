@@ -310,7 +310,7 @@ describe("PRDetail", () => {
 
   it("switches to commits tab and loads commits", async () => {
     setupSuccessfulLoad();
-    const commits = [makeCommit()];
+    const commits = [makeCommit({ message: "Implement subclass hierarchy\n\nDetailed changes" })];
     mockApi.getCommits.mockResolvedValue({ items: commits, total: 1 });
 
     render(<PRDetail projectId="proj-1" prNumber={7} accessToken="tok" />);
@@ -324,7 +324,7 @@ describe("PRDetail", () => {
 
     await waitFor(() => {
       expect(mockApi.getCommits).toHaveBeenCalledWith("proj-1", 7, "tok");
-      expect(screen.getAllByText("Add owl:Thing subclass").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("Implement subclass hierarchy")).toBeDefined();
       expect(screen.getAllByText("abc123d").length).toBeGreaterThanOrEqual(1);
     });
   });
