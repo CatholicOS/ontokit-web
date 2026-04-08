@@ -162,10 +162,8 @@ describe("ParentClassPicker", () => {
       expect(screen.getByText("Animal")).toBeDefined();
     });
 
-    // Click on the result button (the one that contains "Animal" text in a <p> tag)
-    const animalButton = screen.getByText("Animal").closest("button");
-    expect(animalButton).toBeDefined();
-    fireEvent.click(animalButton!);
+    const animalButton = screen.getByRole("button", { name: /Animal/ });
+    fireEvent.click(animalButton);
     expect(defaultProps.onSelect).toHaveBeenCalledWith("http://example.org/Animal", "Animal");
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
