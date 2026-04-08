@@ -197,15 +197,10 @@ describe("HealthCheckPanel", () => {
     await waitFor(() => {
       expect(screen.getByText("Health Check")).toBeDefined();
     });
-    // The close button is the ghost button with X icon
-    const closeButtons = screen.getAllByRole("button");
-    const closeBtn = closeButtons.find(
-      (b) => b.className.includes("ghost") || b.className.includes("p-0")
-    );
-    if (closeBtn) {
-      await userEvent.click(closeBtn);
-      expect(onClose).toHaveBeenCalled();
-    }
+    const closeBtn = screen.getByRole("button", { name: /close/i });
+    expect(closeBtn).toBeTruthy();
+    await userEvent.click(closeBtn);
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("displays no issues message when total is 0", async () => {
