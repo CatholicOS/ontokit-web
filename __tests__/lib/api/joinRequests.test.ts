@@ -3,11 +3,9 @@ import {
   mockFetch,
   mockOk,
   mockEmpty,
-  mockError,
   resetFetch,
 } from "@/__tests__/helpers/mockFetch";
 import { joinRequestApi } from "@/lib/api/joinRequests";
-import { ApiError } from "@/lib/api/client";
 
 describe("joinRequestApi", () => {
   beforeEach(() => {
