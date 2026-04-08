@@ -384,6 +384,33 @@ describe("useProjectViewer", () => {
     expect(suggestionsApi.listPending).not.toHaveBeenCalled();
   });
 
+  it("does not fetch suggestions when canEdit is true but accessToken is missing", async () => {
+    const project = makeProject();
+    mockUseProject.mockReturnValue({
+      project,
+      isLoading: false,
+      error: null,
+      errorKind: null,
+    });
+    mockDerivePermissions.mockReturnValue(defaultPermissions({ canEdit: true }));
+
+    renderHook(() =>
+      useProjectViewer({
+        projectId: "p1",
+        accessToken: undefined,
+        sessionStatus: "unauthenticated",
+        activeBranch: "main",
+      })
+    );
+
+    // Wait for other effects
+    await waitFor(() => {
+      expect(pullRequestsApi.list).toHaveBeenCalled();
+    });
+
+    expect(suggestionsApi.listPending).not.toHaveBeenCalled();
+  });
+
   it("exposes tree properties from useOntologyTree", () => {
     mockUseProject.mockReturnValue({
       project: makeProject(),
