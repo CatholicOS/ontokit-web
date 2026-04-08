@@ -57,15 +57,12 @@ function createWrapper(props: { projectId: string; accessToken?: string; initial
     return React.createElement(
       QueryWrapper,
       null,
-      React.createElement(
-        BranchProvider,
-        {
-          projectId: props.projectId,
-          accessToken: props.accessToken,
-          initialBranch: props.initialBranch,
-        },
+      React.createElement(BranchProvider, {
+        projectId: props.projectId,
+        accessToken: props.accessToken,
+        initialBranch: props.initialBranch,
         children,
-      ),
+      }),
     );
   }
   Wrapper.displayName = "BranchQueryWrapper";
