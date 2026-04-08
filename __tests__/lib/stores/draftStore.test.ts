@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { useDraftStore, draftKey, type DraftEntry, type PropertyDraftEntry, type IndividualDraftEntry, type AnyDraftEntry } from "@/lib/stores/draftStore";
+import { useDraftStore, draftKey, type DraftEntry, type PropertyDraftEntry, type IndividualDraftEntry } from "@/lib/stores/draftStore";
 
 function makeClassDraft(overrides?: Partial<DraftEntry>): DraftEntry {
   return {
@@ -73,7 +73,7 @@ describe("useDraftStore", () => {
 
   describe("setDraft / getDraft", () => {
     it("stores and retrieves a class draft", () => {
-      const { setDraft, getDraft } = useDraftStore.getState();
+      const { setDraft } = useDraftStore.getState();
       const key = draftKey("p1", "main", "urn:A");
       const draft = makeClassDraft();
 
