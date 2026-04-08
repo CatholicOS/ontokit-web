@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // ---- BranchContext mock ----
@@ -48,8 +48,8 @@ let mockBranchState = {
   createBranch: mockCreateBranch,
   deleteBranch: mockDeleteBranch,
   hasGitHubRemote: false,
-  lastSyncAt: null,
-  syncStatus: null,
+  lastSyncAt: null as string | null,
+  syncStatus: null as string | null,
   error: null,
   pendingChanges: false,
   refreshBranches: vi.fn(),
@@ -205,8 +205,10 @@ describe("BranchSelector", () => {
     );
     await user.click(featureOption!);
 
-    // Dropdown should be closed
-    expect(screen.queryByRole("option")).toBeNull();
+    // Dropdown should be closed after the async switchBranch resolves
+    await waitFor(() => {
+      expect(screen.queryByRole("option")).toBeNull();
+    });
   });
 
   it("shows 'Create new branch' button when canCreateBranch is true", async () => {
@@ -242,7 +244,7 @@ describe("BranchSelector", () => {
   });
 
   it("does not show chevron when readOnly", () => {
-    const { container } = render(<BranchSelector readOnly />);
+    render(<BranchSelector readOnly />);
     // ChevronDown is only rendered when !readOnly
     // The non-readOnly version has 3 SVGs (GitBranch + ChevronDown), readOnly has 1 (GitBranch only)
     const button = screen.getByRole("button");
@@ -434,7 +436,9 @@ describe("BranchSelector", () => {
     );
     await user.click(featureOption!);
 
-    expect(onBranchChange).toHaveBeenCalledWith("feature/test");
+    await waitFor(() => {
+      expect(onBranchChange).toHaveBeenCalledWith("feature/test");
+    });
   });
 
   it("shows error message when switchBranch fails", async () => {
@@ -448,7 +452,9 @@ describe("BranchSelector", () => {
     );
     await user.click(featureOption!);
 
-    expect(screen.getByText("Network error")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText("Network error")).toBeDefined();
+    });
   });
 
   it("shows 'No branches found' when branch list is empty", async () => {
