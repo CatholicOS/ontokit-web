@@ -53,8 +53,8 @@ function makeListResponse(branches: BranchInfo[], overrides?: Partial<BranchList
 
 function createWrapper(props: { projectId: string; accessToken?: string; initialBranch?: string }) {
   const QueryWrapper = createQueryWrapper();
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(
       QueryWrapper,
       null,
       React.createElement(
@@ -63,10 +63,13 @@ function createWrapper(props: { projectId: string; accessToken?: string; initial
           projectId: props.projectId,
           accessToken: props.accessToken,
           initialBranch: props.initialBranch,
-          children,
         },
+        children,
       ),
     );
+  }
+  Wrapper.displayName = "BranchQueryWrapper";
+  return Wrapper;
 }
 
 describe("BranchContext", () => {
