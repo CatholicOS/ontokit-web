@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
@@ -29,11 +29,11 @@ vi.mock("@/lib/graph/elkLayout", () => ({
   computeLayout: vi.fn().mockResolvedValue(new Map()),
 }));
 
-vi.mock("./OntologyNode", () => ({
+vi.mock("@/components/graph/OntologyNode", () => ({
   OntologyNode: () => null,
 }));
 
-vi.mock("./OntologyEdge", () => ({
+vi.mock("@/components/graph/OntologyEdge", () => ({
   OntologyEdge: () => null,
 }));
 
