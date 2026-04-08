@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, type Mock } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // ── Mocks (must be before component import) ──
@@ -69,7 +69,7 @@ vi.mock("@/components/editor/EntityHistoryTab", () => ({
   EntityHistoryTab: () => null,
 }));
 
-import { ClassDetailPanel } from "@/components/editor/ClassDetailPanel";
+import { ClassDetailPanel, ensureTrailingEmpty } from "@/components/editor/ClassDetailPanel";
 import { projectOntologyApi } from "@/lib/api/client";
 import { lintApi } from "@/lib/api/lint";
 
@@ -524,18 +524,6 @@ describe("ClassDetailPanel", () => {
 // ── ensureTrailingEmpty helper unit tests ──
 
 describe("ensureTrailingEmpty", () => {
-  // Import the function directly — it's not exported, so we test it indirectly
-  // through the component's rendering. But we can re-implement and verify the logic.
-
-  function ensureTrailingEmpty(
-    arr: Array<{ value: string; lang: string }>
-  ): Array<{ value: string; lang: string }> {
-    if (arr.length === 0 || arr[arr.length - 1].value.trim() !== "") {
-      return [...arr, { value: "", lang: "en" }];
-    }
-    return arr;
-  }
-
   it("appends empty row to empty array", () => {
     const result = ensureTrailingEmpty([]);
     expect(result).toEqual([{ value: "", lang: "en" }]);
@@ -558,7 +546,6 @@ describe("ensureTrailingEmpty", () => {
 
   it("does not append when last item is whitespace-only", () => {
     const input = [{ value: "  ", lang: "en" }];
-    // trim() makes "  " into "" which equals ""
     const result = ensureTrailingEmpty(input);
     expect(result).toHaveLength(1);
   });
