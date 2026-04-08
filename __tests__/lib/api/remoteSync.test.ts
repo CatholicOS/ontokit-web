@@ -145,6 +145,7 @@ describe("remoteSyncApi", () => {
       mockError(500, "Internal Server Error", "Server error");
 
       await expect(remoteSyncApi.getConfig("proj-1")).rejects.toThrow(ApiError);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
 
