@@ -334,7 +334,7 @@ describe("BranchSelector", () => {
       (o) => within(o).queryByText("feature/test") !== null
     );
     const deleteBtn = featureOption!.querySelector("button");
-    expect(deleteBtn).toBeDefined();
+    expect(deleteBtn).not.toBeNull();
   });
 
   it("shows loading state when isLoading is true", () => {
