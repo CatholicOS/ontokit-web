@@ -3,11 +3,9 @@ import {
   mockFetch,
   mockOk,
   mockEmpty,
-  mockError,
   resetFetch,
 } from "@/__tests__/helpers/mockFetch";
 import { remoteSyncApi } from "@/lib/api/remoteSync";
-import { ApiError } from "@/lib/api/client";
 
 describe("remoteSyncApi", () => {
   beforeEach(() => {
