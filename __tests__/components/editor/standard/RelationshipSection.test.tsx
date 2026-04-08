@@ -1,6 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
 // --- Mocks ---
@@ -69,6 +68,10 @@ describe("RelationshipSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSearchEntities.mockResolvedValue({ results: [], total: 0 });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   // --- Read mode ---
