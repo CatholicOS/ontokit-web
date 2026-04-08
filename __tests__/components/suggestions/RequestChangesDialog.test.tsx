@@ -134,7 +134,9 @@ describe("RequestChangesDialog", () => {
     await waitFor(() => {
       expect(mockOnConfirm).toHaveBeenCalledWith("Fix the labels");
     });
-    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => {
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
+    });
   });
 
   it("shows error when onConfirm rejects", async () => {
