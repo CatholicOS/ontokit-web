@@ -111,25 +111,21 @@ describe("useEditorModeStore", () => {
   });
 
   describe("setTheme", () => {
-    it("sets the theme to dark", () => {
+    beforeEach(() => {
       // Stub classList to avoid errors in applyThemeToDOM
       Object.defineProperty(document.documentElement, "classList", {
         value: { add: vi.fn(), remove: vi.fn(), toggle: vi.fn() },
         writable: true,
         configurable: true,
       });
+    });
 
+    it("sets the theme to dark", () => {
       useEditorModeStore.getState().setTheme("dark");
       expect(useEditorModeStore.getState().theme).toBe("dark");
     });
 
     it("sets the theme to light", () => {
-      Object.defineProperty(document.documentElement, "classList", {
-        value: { add: vi.fn(), remove: vi.fn(), toggle: vi.fn() },
-        writable: true,
-        configurable: true,
-      });
-
       useEditorModeStore.getState().setTheme("light");
       expect(useEditorModeStore.getState().theme).toBe("light");
     });
