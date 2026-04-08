@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach } from "vitest";
 import {
   mockFetch,
   mockOk,
-  mockEmpty,
   mockError,
   resetFetch,
 } from "@/__tests__/helpers/mockFetch";
