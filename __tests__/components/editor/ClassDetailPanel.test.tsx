@@ -60,14 +60,26 @@ vi.mock("@/components/editor/LanguageFlag", () => ({
 vi.mock("@/components/editor/ParentClassPicker", () => ({
   ParentClassPicker: () => null,
 }));
+let capturedAnnotationRowProps: Array<Record<string, unknown>> = [];
 vi.mock("@/components/editor/standard/AnnotationRow", () => ({
-  AnnotationRow: () => null,
+  AnnotationRow: (props: Record<string, unknown>) => {
+    capturedAnnotationRowProps.push(props);
+    return null;
+  },
 }));
+let capturedInlineAnnotationAdderProps: Record<string, unknown> | null = null;
 vi.mock("@/components/editor/standard/InlineAnnotationAdder", () => ({
-  InlineAnnotationAdder: () => null,
+  InlineAnnotationAdder: (props: Record<string, unknown>) => {
+    capturedInlineAnnotationAdderProps = props;
+    return null;
+  },
 }));
+let capturedRelationshipSectionProps: Record<string, unknown> | null = null;
 vi.mock("@/components/editor/standard/RelationshipSection", () => ({
-  RelationshipSection: () => null,
+  RelationshipSection: (props: Record<string, unknown>) => {
+    capturedRelationshipSectionProps = props;
+    return null;
+  },
 }));
 let _autoSaveBarProps: Record<string, unknown> = {};
 vi.mock("@/components/editor/AutoSaveAffordanceBar", () => ({
@@ -158,6 +170,9 @@ describe("ClassDetailPanel", () => {
     editorModeOverrides = {};
     mockEditStateRef.current = null;
     mockFlushToGit.mockResolvedValue(true);
+    capturedAnnotationRowProps = [];
+    capturedInlineAnnotationAdderProps = null;
+    capturedRelationshipSectionProps = null;
   });
 
   // ── Empty / placeholder state ──
@@ -1683,6 +1698,834 @@ describe("ClassDetailPanel", () => {
     });
     // Error state should be visible
     expect(container.querySelector(".border-red-200")).not.toBeNull();
+  });
+
+  // ── Manual save stays in edit mode when flushToGit fails ──
+
+  it("stays in edit mode when saveAndExitEditMode flush fails", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    mockFlushToGit.mockResolvedValue(false);
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("manual-save")).not.toBeNull();
+    });
+
+    await user.click(screen.getByTestId("manual-save"));
+
+    // Should remain in edit mode — Edit Item button should NOT be visible
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+      expect(mockFlushToGit).toHaveBeenCalled();
+    });
+    // Auto-save bar should still be visible (still editing)
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+  });
+
+  // ── Continuous editing auto-enter ──
+
+  it("auto-enters edit mode when continuousEditing is true", async () => {
+    editorModeOverrides = { continuousEditing: true };
+    const onUpdateClass = vi.fn();
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    });
+  });
+
+  // ── Continuous editing does not auto-enter after cancel ──
+
+  it("does not re-enter edit mode after cancel even with continuousEditing", async () => {
+    editorModeOverrides = { continuousEditing: true };
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    });
+
+    const cancelBtn = screen.getByTestId("cancel-edit");
+    await user.click(cancelBtn);
+
+    await waitFor(() => {
+      expect(mockDiscardDraft).toHaveBeenCalled();
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+  });
+
+  // ── Draft restoration auto-enter ──
+
+  it("auto-enters edit mode when restoredDraft is available", async () => {
+    autoSaveOverrides = {
+      restoredDraft: {
+        labels: [{ value: "Restored Label", lang: "en" }],
+        comments: [{ value: "Restored Comment", lang: "en" }],
+        parentIris: ["http://example.org/ontology#Agent"],
+        parentLabels: { "http://example.org/ontology#Agent": "Agent" },
+        annotations: [],
+        relationships: [],
+      },
+    };
+    const onUpdateClass = vi.fn();
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+      expect(mockClearRestoredDraft).toHaveBeenCalled();
+    });
+  });
+
+  // ── Draft restoration with empty labels ──
+
+  it("auto-enters edit mode with empty label placeholder from restored draft", async () => {
+    autoSaveOverrides = {
+      restoredDraft: {
+        labels: [],
+        comments: [],
+        parentIris: [],
+        parentLabels: {},
+        annotations: [],
+        relationships: [],
+      },
+    };
+    const onUpdateClass = vi.fn();
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    });
+  });
+
+  // ── InlineAnnotationAdder onAdd adds to existing annotation ──
+
+  it("InlineAnnotationAdder adds value to existing annotation property", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const PREF_LABEL_IRI = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: PREF_LABEL_IRI,
+            property_label: "Preferred Label",
+            values: [{ value: "Existing Value", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedInlineAnnotationAdderProps).not.toBeNull();
+    });
+
+    const onAdd = capturedInlineAnnotationAdderProps!.onAdd as (propertyIri: string, value: string, lang: string) => void;
+    // Add to existing annotation
+    onAdd(PREF_LABEL_IRI, "New Value", "fr");
+
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── InlineAnnotationAdder onAdd creates new annotation property ──
+
+  it("InlineAnnotationAdder creates new annotation property when not existing", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({ annotations: [] })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedInlineAnnotationAdderProps).not.toBeNull();
+    });
+
+    const onAdd = capturedInlineAnnotationAdderProps!.onAdd as (propertyIri: string, value: string, lang: string) => void;
+    onAdd("http://www.w3.org/2004/02/skos/core#example", "Example value", "en");
+
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── RelationshipSection callbacks in edit mode ──
+
+  it("passes relationship callbacks to RelationshipSection in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            property_label: "See Also",
+            values: [{ value: "http://example.org/ontology#Related", lang: "" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedRelationshipSectionProps).not.toBeNull();
+    });
+
+    // Test addTarget
+    const onAddTarget = capturedRelationshipSectionProps!.onAddTarget as (groupIdx: number, target: { iri: string; label: string }) => void;
+    onAddTarget(0, { iri: "http://example.org/ontology#newRelated", label: "newRelated" });
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  it("invokes removeRelationshipTarget via RelationshipSection", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            property_label: "See Also",
+            values: [{ value: "http://example.org/ontology#Related", lang: "" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedRelationshipSectionProps).not.toBeNull();
+    });
+
+    const onRemoveTarget = capturedRelationshipSectionProps!.onRemoveTarget as (groupIdx: number, targetIdx: number) => void;
+    onRemoveTarget(0, 0);
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  it("invokes changeRelationshipProperty via RelationshipSection", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            property_label: "See Also",
+            values: [{ value: "http://example.org/ontology#Related", lang: "" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedRelationshipSectionProps).not.toBeNull();
+    });
+
+    const onChangeProperty = capturedRelationshipSectionProps!.onChangeProperty as (groupIdx: number, newIri: string, newLabel: string) => void;
+    onChangeProperty(0, "http://www.w3.org/2000/01/rdf-schema#isDefinedBy", "Defined By");
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  it("invokes addRelationshipGroup via RelationshipSection", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedRelationshipSectionProps).not.toBeNull();
+    });
+
+    const onAddGroup = capturedRelationshipSectionProps!.onAddGroup as () => void;
+    onAddGroup();
+  });
+
+  // ── RelationshipSection onSaveNeeded callback ──
+
+  it("invokes triggerSave via RelationshipSection onSaveNeeded", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+            property_label: "See Also",
+            values: [{ value: "http://example.org/ontology#Related", lang: "" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedRelationshipSectionProps).not.toBeNull();
+    });
+
+    const onSaveNeeded = capturedRelationshipSectionProps!.onSaveNeeded as () => void;
+    onSaveNeeded();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── Annotation value update and remove callbacks in edit mode ──
+
+  it("updates annotation value via AnnotationRow callback in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const PREF_LABEL_IRI = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: PREF_LABEL_IRI,
+            property_label: "Preferred Label",
+            values: [{ value: "Human", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const annRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === PREF_LABEL_IRI
+      );
+      expect(annRow).not.toBeNull();
+    });
+
+    const annRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === PREF_LABEL_IRI
+    );
+    const onValueChange = annRow!.onValueChange as (v: string) => void;
+    onValueChange("Updated Value");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === PREF_LABEL_IRI && p.value === "Updated Value"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+  });
+
+  it("removes annotation value via AnnotationRow callback in edit mode", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const PREF_LABEL_IRI = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: PREF_LABEL_IRI,
+            property_label: "Preferred Label",
+            values: [
+              { value: "Label One", lang: "en" },
+              { value: "Label Two", lang: "fr" },
+            ],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const annRows = capturedAnnotationRowProps.filter(
+        (p) => p.propertyIri === PREF_LABEL_IRI
+      );
+      expect(annRows.length).toBeGreaterThanOrEqual(1);
+    });
+
+    const annRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === PREF_LABEL_IRI && typeof p.onRemove === "function"
+    );
+    expect(annRow).not.toBeNull();
+    const onRemove = annRow!.onRemove as () => void;
+    onRemove();
+
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── Annotation definition update callback via AnnotationRow ──
+
+  it("updates definition annotation via AnnotationRow callback", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const DEFINITION_IRI = "http://www.w3.org/2004/02/skos/core#definition";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: DEFINITION_IRI,
+            property_label: "Definition",
+            values: [{ value: "A rational animal", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const defRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === DEFINITION_IRI
+      );
+      expect(defRow).not.toBeNull();
+    });
+
+    const defRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === DEFINITION_IRI
+    );
+    const onValueChange = defRow!.onValueChange as (v: string) => void;
+    onValueChange("Updated definition");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === DEFINITION_IRI && p.value === "Updated definition"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+  });
+
+  // ── Definition AnnotationRow onBlur triggers save ──
+
+  it("definition AnnotationRow onBlur triggers triggerSave", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const DEFINITION_IRI = "http://www.w3.org/2004/02/skos/core#definition";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: DEFINITION_IRI,
+            property_label: "Definition",
+            values: [{ value: "A rational animal", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const defRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === DEFINITION_IRI
+      );
+      expect(defRow).not.toBeNull();
+    });
+
+    const defRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === DEFINITION_IRI
+    );
+    const onBlur = defRow!.onBlur as () => void;
+    onBlur();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── Does not auto-enter edit mode when canEdit is false ──
+
+  it("does not auto-enter edit mode when canEdit is false even with continuousEditing", async () => {
+    editorModeOverrides = { continuousEditing: true };
+    render(
+      <ClassDetailPanel {...DEFAULT_PROPS} canEdit={false} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Person").length).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.queryByTestId("auto-save-bar")).toBeNull();
+  });
+
+  // ── Target label resolution: search fails gracefully ──
+
+  it("handles target label resolution when both class and search fail", async () => {
+    const SEE_ALSO = "http://www.w3.org/2000/01/rdf-schema#seeAlso";
+    const targetIri = "http://example.org/ontology#Orphan";
+
+    mockGetClassDetail
+      .mockResolvedValueOnce(
+        makeClassDetail({
+          annotations: [
+            {
+              property_iri: SEE_ALSO,
+              property_label: "See Also",
+              values: [{ value: targetIri, lang: "" }],
+            },
+          ],
+        })
+      )
+      .mockRejectedValueOnce(new Error("Class not found"));
+
+    // Search also fails
+    mockSearchEntities.mockRejectedValueOnce(new Error("Search failed"));
+
+    render(<ClassDetailPanel {...DEFAULT_PROPS} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Relationship(s)")).not.toBeNull();
+    });
+
+    // Should not crash
+    await waitFor(() => {
+      expect(mockSearchEntities).toHaveBeenCalled();
+    });
+  });
+
+  // ── Annotation language change callback ──
+
+  it("updates annotation language via AnnotationRow callback", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const PREF_LABEL_IRI = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: PREF_LABEL_IRI,
+            property_label: "Preferred Label",
+            values: [{ value: "Human", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const annRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === PREF_LABEL_IRI
+      );
+      expect(annRow).not.toBeNull();
+    });
+
+    const annRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === PREF_LABEL_IRI
+    );
+    const onLangChange = annRow!.onLangChange as (l: string) => void;
+    onLangChange("de");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === PREF_LABEL_IRI && p.lang === "de"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+  });
+
+  // ── Definition remove callback ──
+
+  it("removes definition value via AnnotationRow callback", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const DEFINITION_IRI = "http://www.w3.org/2004/02/skos/core#definition";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: DEFINITION_IRI,
+            property_label: "Definition",
+            values: [
+              { value: "First def", lang: "en" },
+              { value: "Second def", lang: "fr" },
+            ],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const defRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === DEFINITION_IRI && typeof p.onRemove === "function"
+      );
+      expect(defRow).not.toBeNull();
+    });
+
+    const defRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === DEFINITION_IRI && typeof p.onRemove === "function"
+    );
+    const onRemove = defRow!.onRemove as () => void;
+    onRemove();
+
+    await waitFor(() => {
+      expect(mockTriggerSave).toHaveBeenCalled();
+    });
+  });
+
+  // ── Annotation AnnotationRow onBlur triggers save ──
+
+  it("annotation AnnotationRow onBlur triggers triggerSave", async () => {
+    const user = userEvent.setup();
+    const onUpdateClass = vi.fn();
+    const PREF_LABEL_IRI = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    mockGetClassDetail.mockResolvedValue(
+      makeClassDetail({
+        annotations: [
+          {
+            property_iri: PREF_LABEL_IRI,
+            property_label: "Preferred Label",
+            values: [{ value: "Human", lang: "en" }],
+          },
+        ],
+      })
+    );
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateClass={onUpdateClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      const annRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === PREF_LABEL_IRI
+      );
+      expect(annRow).not.toBeNull();
+    });
+
+    const annRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === PREF_LABEL_IRI
+    );
+    const onBlur = annRow!.onBlur as () => void;
+    onBlur();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── Navigate to fallback parent ──
+
+  it("calls onNavigateToClass when clicking parent in fallback card", async () => {
+    const user = userEvent.setup();
+    mockGetClassDetail.mockRejectedValue(new Error("404 Class not found"));
+    const onNavigateToClass = vi.fn();
+    const fallback = {
+      label: "NewEntity",
+      iri: "http://example.org/ontology#Person",
+      parentIri: "http://example.org/ontology#Agent",
+      parentLabel: "Agent",
+    };
+    render(
+      <ClassDetailPanel
+        {...DEFAULT_PROPS}
+        selectedNodeFallback={fallback}
+        onNavigateToClass={onNavigateToClass}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Agent").length).toBeGreaterThanOrEqual(1);
+    });
+
+    await user.click(screen.getAllByText("Agent")[0]);
+    expect(onNavigateToClass).toHaveBeenCalledWith("http://example.org/ontology#Agent");
+  });
+
+  // ── Returns null when no classDetail and no fallback matching ──
+
+  it("returns null when classDetail is null and no matching fallback", async () => {
+    mockGetClassDetail.mockRejectedValue(new Error("404 Class not found"));
+    const fallback = {
+      label: "NewEntity",
+      iri: "http://example.org/ontology#Person",
+    };
+    render(
+      <ClassDetailPanel {...DEFAULT_PROPS} selectedNodeFallback={fallback} />
+    );
+
+    // With matching fallback, shows the fallback card with unsaved message
+    await waitFor(() => {
+      expect(screen.getByText(/has not been saved yet/)).not.toBeNull();
+    });
   });
 });
 

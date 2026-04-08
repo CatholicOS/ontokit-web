@@ -58,8 +58,12 @@ vi.mock("@/components/editor/standard/AnnotationRow", () => ({
     return null;
   },
 }));
+let capturedInlineAnnotationAdderProps: Record<string, unknown> | null = null;
 vi.mock("@/components/editor/standard/InlineAnnotationAdder", () => ({
-  InlineAnnotationAdder: () => null,
+  InlineAnnotationAdder: (props: Record<string, unknown>) => {
+    capturedInlineAnnotationAdderProps = props;
+    return null;
+  },
 }));
 
 let capturedRelationshipSectionProps: Record<string, unknown> | null = null;
@@ -136,6 +140,7 @@ describe("IndividualDetailPanel", () => {
     capturedRelationshipSectionProps = null;
     capturedPropertyAssertionProps = [];
     capturedAutoSaveBarProps = null;
+    capturedInlineAnnotationAdderProps = null;
     mockExtractIndividualDetail.mockReturnValue(makeIndividualDetail());
   });
 
@@ -1651,5 +1656,322 @@ describe("IndividualDetailPanel", () => {
     const onSaveNeeded = objectSection!.onSaveNeeded as () => void;
     onSaveNeeded();
     expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── Manual save stays in edit mode when flushToGit fails ──
+
+  it("stays in edit mode when saveAndExitEditMode flush fails", async () => {
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    mockFlushToGit.mockResolvedValue(false);
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedAutoSaveBarProps).not.toBeNull();
+    const onManualSave = capturedAutoSaveBarProps!.onManualSave as () => Promise<void>;
+    await onManualSave();
+    expect(mockTriggerSave).toHaveBeenCalled();
+    expect(mockFlushToGit).toHaveBeenCalled();
+    // Should still be in edit mode
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+  });
+
+  // ── InlineAnnotationAdder onAdd adds to existing annotation ──
+
+  it("InlineAnnotationAdder adds value to existing annotation property", async () => {
+    const PREF_LABEL_IRI = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({
+        annotations: [
+          {
+            property_iri: PREF_LABEL_IRI,
+            values: [{ value: "Existing", lang: "en" }],
+          },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedInlineAnnotationAdderProps).not.toBeNull();
+    });
+
+    const onAdd = capturedInlineAnnotationAdderProps!.onAdd as (propertyIri: string, value: string, lang: string) => void;
+    onAdd(PREF_LABEL_IRI, "New Value", "fr");
+
+    await waitFor(() => {
+      const updatedRows = capturedAnnotationRowProps.filter(
+        (p) => p.propertyIri === PREF_LABEL_IRI && p.value === "New Value"
+      );
+      expect(updatedRows.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // ── InlineAnnotationAdder onAdd creates new annotation property ──
+
+  it("InlineAnnotationAdder creates new annotation property when not existing", async () => {
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({ annotations: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedInlineAnnotationAdderProps).not.toBeNull();
+    });
+
+    const onAdd = capturedInlineAnnotationAdderProps!.onAdd as (propertyIri: string, value: string, lang: string) => void;
+    onAdd("http://www.w3.org/2004/02/skos/core#example", "Example value", "en");
+
+    await waitFor(() => {
+      const exampleRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#example"
+      );
+      expect(exampleRow).toBeDefined();
+    });
+  });
+
+  // ── InlineAnnotationAdder onSaveNeeded callback ──
+
+  it("InlineAnnotationAdder onSaveNeeded calls triggerSave", async () => {
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedInlineAnnotationAdderProps).not.toBeNull();
+    });
+
+    const onSaveNeeded = capturedInlineAnnotationAdderProps!.onSaveNeeded as () => void;
+    onSaveNeeded();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── RelationshipSection onSaveNeeded callback ──
+
+  it("RelationshipSection onSaveNeeded calls triggerSave", async () => {
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+
+    await waitFor(() => {
+      expect(capturedRelationshipSectionProps).not.toBeNull();
+    });
+
+    const onSaveNeeded = capturedRelationshipSectionProps!.onSaveNeeded as () => void;
+    onSaveNeeded();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── Labels section visible in read-only with labels ──
+
+  it("renders labels section title in read-only when labels exist", () => {
+    render(<IndividualDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("Label(s)")).not.toBeNull();
+  });
+
+  // ── Cancel after continuous editing prevents re-entry ──
+
+  it("does not re-enter edit mode after cancel even with continuousEditing", async () => {
+    editorModeOverrides = { continuousEditing: true };
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+
+    // Trigger cancel
+    expect(capturedAutoSaveBarProps).not.toBeNull();
+    const onCancel = capturedAutoSaveBarProps!.onCancel as () => void;
+    onCancel();
+
+    await waitFor(() => {
+      expect(mockDiscardDraft).toHaveBeenCalled();
+      expect(screen.getByText("Edit Item")).not.toBeNull();
+    });
+  });
+
+  // ── Edit mode with isDefinedBy relationships ──
+
+  it("initializes edit mode with isDefinedBy as separate relationship group", async () => {
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({
+        seeAlsoIris: [],
+        isDefinedByIris: ["http://example.org/ontology#myOntology"],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    expect(capturedRelationshipSectionProps).not.toBeNull();
+    const groups = capturedRelationshipSectionProps!.groups as Array<{ property_label: string }>;
+    const definedByGroup = groups.find((g) => g.property_label === "Defined By");
+    expect(definedByGroup).toBeDefined();
+  });
+
+  // ── Object property assertion without targetIri ──
+
+  it("renders object property assertion without target when targetIri is null", () => {
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({
+        objectPropertyAssertions: [
+          {
+            propertyIri: "http://example.org/ontology#hasParent",
+            targetIri: null,
+          },
+        ],
+      })
+    );
+    render(<IndividualDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("Object Properties")).not.toBeNull();
+    // Should not crash when targetIri is null
+    expect(screen.getByText("hasParent")).not.toBeNull();
+  });
+
+  // ── Edit mode with no labels initializes empty placeholder ──
+
+  it("initializes edit mode with empty label placeholder when no labels", async () => {
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({ labels: [] })
+    );
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const labelInputs = screen.getAllByPlaceholderText("Label text");
+    expect(labelInputs.length).toBeGreaterThanOrEqual(1);
+    expect((labelInputs[0] as HTMLInputElement).value).toBe("");
+  });
+
+  // ── Data property assertion with lang tag in read-only ──
+
+  it("renders data property assertion with lang flag in read-only mode", () => {
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({
+        dataPropertyAssertions: [
+          {
+            propertyIri: "http://example.org/ontology#hasName",
+            value: "Jean",
+            lang: "fr",
+          },
+        ],
+      })
+    );
+    render(<IndividualDetailPanel {...DEFAULT_PROPS} />);
+    expect(screen.getByText("Data Properties")).not.toBeNull();
+    expect(screen.getByText("Jean")).not.toBeNull();
+  });
+
+  // ── PropertyAssertionSection data onSaveNeeded callback ──
+
+  it("passes onSaveNeeded callback to data PropertyAssertionSection", async () => {
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const dataSection = capturedPropertyAssertionProps.find(
+      (p) => p.assertionType === "data"
+    );
+    expect(dataSection).not.toBeNull();
+    const onSaveNeeded = dataSection!.onSaveNeeded as () => void;
+    onSaveNeeded();
+    expect(mockTriggerSave).toHaveBeenCalled();
+  });
+
+  // ── Annotation language change callback ──
+
+  it("updates custom annotation language via AnnotationRow callback", async () => {
+    mockExtractIndividualDetail.mockReturnValue(
+      makeIndividualDetail({
+        annotations: [
+          {
+            property_iri: "http://www.w3.org/2004/02/skos/core#prefLabel",
+            values: [{ value: "J. Doe", lang: "en" }],
+          },
+        ],
+      })
+    );
+    const user = userEvent.setup();
+    const onUpdateIndividual = vi.fn();
+    render(
+      <IndividualDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateIndividual={onUpdateIndividual}
+      />
+    );
+    await user.click(screen.getByText("Edit Item"));
+    const annRow = capturedAnnotationRowProps.find(
+      (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel"
+    );
+    expect(annRow).not.toBeNull();
+    const onLangChange = annRow!.onLangChange as (l: string) => void;
+    onLangChange("de");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel" && p.lang === "de"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 });

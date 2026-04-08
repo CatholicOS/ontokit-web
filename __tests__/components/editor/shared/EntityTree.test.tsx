@@ -216,4 +216,197 @@ describe("EntityTree", () => {
     fireEvent.keyDown(tree, { key: "ArrowLeft" });
     expect(onCollapse).toHaveBeenCalledWith("http://ex.org/A");
   });
+
+  it("handles ArrowRight to focus first child when node is already expanded", () => {
+    const nodes = [
+      makeNode({
+        iri: "http://ex.org/A",
+        label: "Alpha",
+        hasChildren: true,
+        isExpanded: true,
+        children: [makeNode({ iri: "http://ex.org/B", label: "Beta" })],
+      }),
+    ];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/A"
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    fireEvent.keyDown(tree, { key: "ArrowRight" });
+    // Should focus child Beta
+    expect(tree.getAttribute("aria-activedescendant")).toContain("ex_org_B");
+  });
+
+  it("handles ArrowLeft to navigate to parent when node is collapsed", () => {
+    const nodes = [
+      makeNode({
+        iri: "http://ex.org/A",
+        label: "Alpha",
+        hasChildren: true,
+        isExpanded: true,
+        children: [
+          makeNode({ iri: "http://ex.org/B", label: "Beta", hasChildren: false }),
+        ],
+      }),
+    ];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/B"
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    fireEvent.keyDown(tree, { key: "ArrowLeft" });
+    // Beta is not expanded, so should navigate to parent Alpha
+    expect(tree.getAttribute("aria-activedescendant")).toContain("ex_org_A");
+  });
+
+  it("handles Space key to select focused node", () => {
+    const onSelect = vi.fn();
+    const nodes = [makeNode({ iri: "http://ex.org/A", label: "Alpha" })];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/A"
+        onSelect={onSelect}
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    fireEvent.keyDown(tree, { key: " " });
+    expect(onSelect).toHaveBeenCalledWith("http://ex.org/A");
+  });
+
+  it("clears focusedIri on blur", () => {
+    const nodes = [
+      makeNode({ iri: "http://ex.org/A", label: "Alpha" }),
+      makeNode({ iri: "http://ex.org/B", label: "Beta" }),
+    ];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/A"
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    // First ArrowDown to set focusedIri
+    fireEvent.keyDown(tree, { key: "ArrowDown" });
+    expect(tree.getAttribute("aria-activedescendant")).toContain("ex_org_B");
+    // Now blur to clear
+    fireEvent.blur(tree);
+    expect(tree.getAttribute("aria-activedescendant")).toBeNull();
+  });
+
+  it("ignores keyboard events when enableKeyboardNav is false", () => {
+    const onExpand = vi.fn();
+    const nodes = [
+      makeNode({
+        iri: "http://ex.org/A",
+        label: "Alpha",
+        hasChildren: true,
+      }),
+    ];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/A"
+        onExpand={onExpand}
+        enableKeyboardNav={false}
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    fireEvent.keyDown(tree, { key: "ArrowRight" });
+    expect(onExpand).not.toHaveBeenCalled();
+  });
+
+  it("does not act on ArrowRight for leaf nodes", () => {
+    const onExpand = vi.fn();
+    const nodes = [
+      makeNode({
+        iri: "http://ex.org/A",
+        label: "Alpha",
+        hasChildren: false,
+      }),
+    ];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/A"
+        onExpand={onExpand}
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    fireEvent.keyDown(tree, { key: "ArrowRight" });
+    expect(onExpand).not.toHaveBeenCalled();
+  });
+
+  it("handles ArrowLeft at root with no parent (no-op)", () => {
+    const onCollapse = vi.fn();
+    const nodes = [
+      makeNode({
+        iri: "http://ex.org/A",
+        label: "Alpha",
+        hasChildren: false,
+        isExpanded: false,
+      }),
+    ];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        selectedIri="http://ex.org/A"
+        onCollapse={onCollapse}
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    fireEvent.keyDown(tree, { key: "ArrowLeft" });
+    // Node is not expanded and has no parent, so nothing should happen
+    expect(onCollapse).not.toHaveBeenCalled();
+    expect(tree.getAttribute("aria-activedescendant")).toBeNull();
+  });
+
+  it("handles keyboard events with no selected or focused node", () => {
+    const onSelect = vi.fn();
+    const nodes = [makeNode({ iri: "http://ex.org/A", label: "Alpha" })];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        onSelect={onSelect}
+        enableKeyboardNav
+      />,
+    );
+    const tree = screen.getByRole("tree");
+    // ArrowDown with no selection should still move focus
+    fireEvent.keyDown(tree, { key: "ArrowDown" });
+    expect(tree.getAttribute("aria-activedescendant")).toContain("ex_org_A");
+  });
+
+  it("passes draftIris, searchQuery, and dragState props to child nodes", () => {
+    const draftIris = new Set(["http://ex.org/A"]);
+    const nodes = [makeNode({ iri: "http://ex.org/A", label: "Alpha" })];
+    render(
+      <EntityTree
+        {...defaultProps}
+        nodes={nodes}
+        draftIris={draftIris}
+        searchQuery="Alp"
+      />,
+    );
+    // Draft indicator should be visible
+    expect(screen.getByLabelText("Unsaved draft")).not.toBeNull();
+  });
 });
