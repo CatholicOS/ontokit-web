@@ -645,6 +645,8 @@ describe("PropertyDetailPanel", () => {
 
     await waitFor(() => {
       expect(mockDiscardDraft).toHaveBeenCalled();
+      // Verify edit mode exited — "Edit Item" button should be visible again
+      expect(screen.getByText("Edit Item")).not.toBeNull();
     });
   });
 
@@ -1231,12 +1233,28 @@ describe("PropertyDetailPanel", () => {
       (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment"
     );
     expect(commentRow).not.toBeNull();
-    // Call onValueChange
+    // Call onValueChange — updates state (re-renders AnnotationRow with new value)
     const onValueChange = commentRow!.onValueChange as (v: string) => void;
     onValueChange("Updated comment");
-    // Call onLangChange
+
+    // Verify the updated value propagates to the re-rendered AnnotationRow
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment" && p.value === "Updated comment"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+
+    // Call onLangChange — updates language tag
     const onLangChange = commentRow!.onLangChange as (l: string) => void;
     onLangChange("fr");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2000/01/rdf-schema#comment" && p.lang === "fr"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 
   // ── AnnotationRow callbacks for definitions ──
@@ -1258,6 +1276,13 @@ describe("PropertyDetailPanel", () => {
     expect(defRow).not.toBeNull();
     const onValueChange = defRow!.onValueChange as (v: string) => void;
     onValueChange("Updated definition");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#definition" && p.value === "Updated definition"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 
   // ── AnnotationRow onBlur triggers save ──
@@ -1469,8 +1494,23 @@ describe("PropertyDetailPanel", () => {
     expect(annRow).not.toBeNull();
     const onValueChange = annRow!.onValueChange as (v: string) => void;
     onValueChange("Updated Pref Label");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel" && p.value === "Updated Pref Label"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+
     const onLangChange = annRow!.onLangChange as (l: string) => void;
     onLangChange("de");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel" && p.lang === "de"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 
   it("invokes removeAnnotationValue for custom annotations in edit mode", async () => {

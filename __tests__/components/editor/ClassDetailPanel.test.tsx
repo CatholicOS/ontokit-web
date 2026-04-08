@@ -856,6 +856,8 @@ describe("ClassDetailPanel", () => {
 
     await waitFor(() => {
       expect(mockDiscardDraft).toHaveBeenCalled();
+      // Verify edit mode exited — "Edit Item" button should be visible again
+      expect(screen.getByText("Edit Item")).not.toBeNull();
     });
   });
 
