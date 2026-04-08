@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   ScreenReaderAnnouncerProvider,
@@ -82,6 +82,9 @@ describe("useAnnounce", () => {
     }
     // Should not throw when used outside provider
     render(<TestConsumer />);
-    expect(screen.getByRole("button")).toBeDefined();
+    const button = screen.getByRole("button");
+    expect(button).toBeDefined();
+    // Click the button to exercise the noop announce path
+    fireEvent.click(button);
   });
 });
