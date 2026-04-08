@@ -25,6 +25,10 @@ describe("guideChapters", () => {
 });
 
 describe("getAdjacentChapters", () => {
+  it("has at least 3 chapters (precondition for adjacency tests)", () => {
+    expect(guideChapters.length).toBeGreaterThanOrEqual(3);
+  });
+
   it("returns null prev for the first chapter", () => {
     const { prev, next } = getAdjacentChapters(guideChapters[0].slug);
     expect(prev).toBeNull();
