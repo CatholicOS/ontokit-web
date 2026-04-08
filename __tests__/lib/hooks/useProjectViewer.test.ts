@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import type { Project } from "@/lib/api/projects";
 
 // --- Mocks ---
@@ -472,7 +472,9 @@ describe("useProjectViewer", () => {
     );
 
     // Give effects time to fire (they shouldn't)
-    await new Promise((r) => setTimeout(r, 50));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
 
     expect(pullRequestsApi.list).not.toHaveBeenCalled();
     expect(lintApi.getStatus).not.toHaveBeenCalled();
