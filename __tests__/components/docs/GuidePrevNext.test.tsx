@@ -4,7 +4,7 @@ import { GuidePrevNext } from "@/components/docs/GuidePrevNext";
 
 vi.mock("next/link", () => ({
   __esModule: true,
-  default: ({ children, href, ...props }: any) => (
+  default: ({ children, href, ...props }: React.PropsWithChildren<React.AnchorHTMLAttributes<HTMLAnchorElement> & { href?: string }>) => (
     <a href={href} {...props}>
       {children}
     </a>
