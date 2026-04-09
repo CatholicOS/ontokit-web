@@ -610,7 +610,7 @@ describe("IndividualDetailPanel", () => {
 
   // ── Continuous editing auto-entry ──
 
-  it("auto-enters edit mode when continuousEditing is true", () => {
+  it("auto-enters edit mode when continuousEditing is true", async () => {
     editorModeOverrides = { continuousEditing: true };
     const onUpdateIndividual = vi.fn();
     render(
@@ -620,12 +620,14 @@ describe("IndividualDetailPanel", () => {
         onUpdateIndividual={onUpdateIndividual}
       />
     );
-    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    });
   });
 
   // ── Draft restoration ──
 
-  it("auto-enters edit mode when restoredDraft is available", () => {
+  it("auto-enters edit mode when restoredDraft is available", async () => {
     autoSaveOverrides = {
       restoredDraft: {
         entityType: "individual",
@@ -651,7 +653,9 @@ describe("IndividualDetailPanel", () => {
         onUpdateIndividual={onUpdateIndividual}
       />
     );
-    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    });
     expect(mockClearRestoredDraft).toHaveBeenCalled();
   });
 
@@ -1508,8 +1512,14 @@ describe("IndividualDetailPanel", () => {
     );
     await user.click(screen.getByText("Edit Item"));
     expect(capturedRelationshipSectionProps).not.toBeNull();
+    const groupsBefore = (capturedRelationshipSectionProps!.groups as unknown[]).length;
     const onAddGroup = capturedRelationshipSectionProps!.onAddGroup as () => void;
     onAddGroup();
+
+    await waitFor(() => {
+      const groupsAfter = (capturedRelationshipSectionProps!.groups as unknown[]).length;
+      expect(groupsAfter).toBe(groupsBefore + 1);
+    });
   });
 
   // ── Custom annotation editing callbacks ──

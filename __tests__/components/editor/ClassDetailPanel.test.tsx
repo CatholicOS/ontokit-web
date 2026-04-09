@@ -2518,7 +2518,7 @@ describe("ClassDetailPanel", () => {
 
   // ── Returns null when no classDetail and no fallback matching ──
 
-  it("returns null when classDetail is null and no matching fallback", async () => {
+  it("shows fallback card when classDetail is null and matching fallback provided", async () => {
     mockGetClassDetail.mockRejectedValue(new Error("404 Class not found"));
     const fallback = {
       label: "NewEntity",
@@ -2528,7 +2528,6 @@ describe("ClassDetailPanel", () => {
       <ClassDetailPanel {...DEFAULT_PROPS} selectedNodeFallback={fallback} />
     );
 
-    // With matching fallback, shows the fallback card with unsaved message
     await waitFor(() => {
       expect(screen.getByText(/has not been saved yet/)).not.toBeNull();
     });
