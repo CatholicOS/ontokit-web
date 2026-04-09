@@ -134,6 +134,7 @@ const DEFAULT_PROPS = {
 describe("IndividualDetailPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFlushToGit.mockResolvedValue(true);
     autoSaveOverrides = {};
     editorModeOverrides = {};
     capturedAnnotationRowProps = [];
@@ -661,7 +662,7 @@ describe("IndividualDetailPanel", () => {
 
   // ── flushToGit on IRI change ──
 
-  it("calls flushToGit when individualIri changes", () => {
+  it("calls flushToGit when individualIri changes", async () => {
     const { rerender } = render(
       <IndividualDetailPanel {...DEFAULT_PROPS} canEdit={false} />
     );
@@ -672,7 +673,9 @@ describe("IndividualDetailPanel", () => {
         canEdit={false}
       />
     );
-    expect(mockFlushToGit).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockFlushToGit).toHaveBeenCalled();
+    });
   });
 
   // ── Does not auto-enter edit mode when canEdit is false ──
@@ -1229,6 +1232,13 @@ describe("IndividualDetailPanel", () => {
     expect(defRow).not.toBeNull();
     const onValueChange = defRow!.onValueChange as (v: string) => void;
     onValueChange("Updated definition");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#definition" && p.value === "Updated definition"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 
   // ── AnnotationRow onBlur triggers save ──
@@ -1551,8 +1561,23 @@ describe("IndividualDetailPanel", () => {
     expect(annRow).not.toBeNull();
     const onValueChange = annRow!.onValueChange as (v: string) => void;
     onValueChange("Updated Pref Label");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel" && p.value === "Updated Pref Label"
+      );
+      expect(updatedRow).toBeDefined();
+    });
+
     const onLangChange = annRow!.onLangChange as (l: string) => void;
     onLangChange("de");
+
+    await waitFor(() => {
+      const updatedRow = capturedAnnotationRowProps.find(
+        (p) => p.propertyIri === "http://www.w3.org/2004/02/skos/core#prefLabel" && p.lang === "de"
+      );
+      expect(updatedRow).toBeDefined();
+    });
   });
 
   it("invokes removeAnnotationValue for custom annotations in edit mode", async () => {

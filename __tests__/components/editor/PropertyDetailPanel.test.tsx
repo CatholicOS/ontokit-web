@@ -142,6 +142,7 @@ const DEFAULT_PROPS = {
 describe("PropertyDetailPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFlushToGit.mockResolvedValue(true);
     autoSaveOverrides = {};
     editorModeOverrides = {};
     capturedAnnotationRowProps = [];
