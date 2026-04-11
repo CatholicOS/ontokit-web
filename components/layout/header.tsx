@@ -2,20 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { UserMenu } from "@/components/auth/user-menu";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { ThemeToggle } from "@/components/editor/ThemeToggle";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { href: "/", label: "Projects" },
-  { href: "/info", label: "Info" },
-  { href: "/docs", label: "Documentation" },
-  { href: "/api-docs", label: "API Reference" },
-];
 
 export function Header() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+
+  const navLinks = [
+    { href: "/", label: t("projects") },
+    { href: "/info", label: t("info") },
+    { href: "/docs", label: t("documentation") },
+    { href: "/api-docs", label: t("apiReference") },
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm supports-backdrop-filter:bg-white/60">
@@ -49,6 +52,7 @@ export function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           <ThemeToggle />
           <NotificationBell />
           <UserMenu />

@@ -1,0 +1,143 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "settings": "Configurações",
+    "retry": "Tentar Novamente",
+    "retrying": "Tentando novamente..."
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "signOut": "Sair",
+    "signInWith": "Entrar com {provider}",
+    "userAvatar": "Avatar do usuário",
+    "settings": "Configurações"
+  },
+  "nav": {
+    "home": "Início",
+    "projects": "Projetos",
+    "info": "Informações",
+    "documentation": "Documentação",
+    "apiReference": "Referência da API",
+    "settings": "Configurações",
+    "help": "Ajuda"
+  },
+  "language": {
+    "label": "Idioma",
+    "en": "English",
+    "pt": "Português"
+  },
+  "ontology": {
+    "title": "Ontologia",
+    "classes": "Classes",
+    "properties": "Propriedades",
+    "individuals": "Indivíduos",
+    "annotations": "Anotações",
+    "imports": "Importações",
+    "hierarchy": "Hierarquia",
+    "search": "Buscar ontologia...",
+    "noResults": "Nenhum resultado encontrado",
+    "addClass": "Adicionar Classe",
+    "addProperty": "Adicionar Propriedade",
+    "addIndividual": "Adicionar Indivíduo"
+  },
+  "class": {
+    "label": "Rótulo",
+    "comment": "Comentário",
+    "iri": "IRI",
+    "parent": "Classe Pai",
+    "children": "Subclasses",
+    "instances": "Instâncias",
+    "equivalent": "Equivalente A",
+    "disjoint": "Disjunto De",
+    "deprecated": "Descontinuado"
+  },
+  "property": {
+    "domain": "Domínio",
+    "range": "Intervalo",
+    "type": "Tipo",
+    "objectProperty": "Propriedade de Objeto",
+    "dataProperty": "Propriedade de Dado",
+    "annotationProperty": "Propriedade de Anotação",
+    "functional": "Funcional",
+    "inverseFunctional": "Inverso Funcional",
+    "transitive": "Transitiva",
+    "symmetric": "Simétrica",
+    "asymmetric": "Assimétrica",
+    "reflexive": "Reflexiva",
+    "irreflexive": "Irreflexiva",
+    "inverseOf": "Inverso De"
+  },
+  "collab": {
+    "users": "Usuários",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "reconnecting": "Reconectando...",
+    "userJoined": "{name} entrou",
+    "userLeft": "{name} saiu"
+  },
+  "connection": {
+    "connecting": "Conectando",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "notAvailable": "Não Disponível",
+    "purpose": "Finalidade: {purpose}",
+    "endpoint": "Endpoint: {endpoint}"
+  },
+  "git": {
+    "history": "Histórico",
+    "commit": "Commit",
+    "push": "Push",
+    "pull": "Pull",
+    "branch": "Branch",
+    "merge": "Mesclar",
+    "diff": "Ver Alterações"
+  },
+  "errors": {
+    "notFound": "Não encontrado",
+    "unauthorized": "Não autorizado",
+    "forbidden": "Acesso negado",
+    "serverError": "Erro no servidor",
+    "networkError": "Erro de rede"
+  },
+  "projects": {
+    "title": "Projetos",
+    "subtitleAuth": "Navegue por projetos públicos ou gerencie os seus",
+    "subtitleGuest": "Navegue por projetos de ontologia públicos",
+    "newProject": "Novo Projeto",
+    "createProject": "Criar Projeto",
+    "filterMine": "Meus Projetos",
+    "filterPublic": "Públicos",
+    "filterPrivate": "Privados",
+    "filterAll": "Todos",
+    "searchPlaceholder": "Buscar projetos...",
+    "signInPromptTitle": "Entre para ver seus projetos",
+    "signInPromptDescription": "Veja todos os projetos que você possui ou participa",
+    "signInPrivatePromptTitle": "Entre para ver projetos privados",
+    "signInPrivatePromptDescription": "Veja todos os projetos privados que você possui ou participa",
+    "noProjectsFound": "Nenhum projeto encontrado",
+    "noProjectsYet": "Ainda sem projetos",
+    "noPrivateProjectsYet": "Ainda sem projetos privados",
+    "noPrivateProjectsDescription": "Você não é membro de nenhum projeto privado e não possui nenhum projeto privado. Crie seu primeiro projeto privado para começar.",
+    "noProjectsAvailable": "Nenhum projeto disponível",
+    "tryDifferentSearch": "Tente um termo de busca diferente",
+    "createFirstProject": "Crie seu primeiro projeto para começar",
+    "createPrivateProject": "Criar Projeto Privado",
+    "checkBackLater": "Verifique novamente mais tarde por projetos públicos",
+    "failedToLoad": "Falha ao carregar projetos",
+    "loadMore": "Carregar Mais",
+    "loadingMore": "Carregando...",
+    "retryLoad": "Tentar Novamente",
+    "count": "{count, plural, one {# projeto} other {# projetos}}",
+    "searchCount": "{count, plural, one {# resultado} other {# resultados}} para \"{query}\""
+  }
+}

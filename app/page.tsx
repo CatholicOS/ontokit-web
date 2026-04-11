@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Plus, Search, Globe, Lock, FolderOpen, LogIn, User } from "lucide-react";
 import { Header } from "@/components/layout/header";
@@ -20,6 +21,9 @@ export default function HomePage() {
   const [filter, setFilter] = useState<FilterType>("public");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const t = useTranslations("projects");
+  const tCommon = useTranslations("common");
+  const tAuth = useTranslations("auth");
 
   const isAuthenticated = status === "authenticated";
 
@@ -79,10 +83,10 @@ export default function HomePage() {
     if (hasNextPage && !isFetchingNextPage) {
       setNextPageError(null);
       fetchNextPage().catch((err) => {
-        setNextPageError(err instanceof Error ? err.message : "Failed to load more projects");
+        setNextPageError(err instanceof Error ? err.message : t("failedToLoad"));
       });
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, t]);
 
   return (
     <>
@@ -93,19 +97,17 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Projects
+                {t("title")}
               </h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                {isAuthenticated
-                  ? "Browse public projects or manage your own"
-                  : "Browse public ontology projects"}
+                {isAuthenticated ? t("subtitleAuth") : t("subtitleGuest")}
               </p>
             </div>
             {isAuthenticated && (
               <Link href="/projects/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  New Project
+                  {t("newProject")}
                 </Button>
               </Link>
             )}
@@ -116,10 +118,10 @@ export default function HomePage() {
             {/* Filter Tabs */}
             <div className="flex rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800">
               {([
-                { value: "mine" as const, label: "My Projects", icon: User },
-                { value: "public" as const, label: "Public", icon: Globe },
-                { value: "private" as const, label: "Private", icon: Lock },
-                { value: "all" as const, label: "All", icon: FolderOpen },
+                { value: "mine" as const, label: t("filterMine"), icon: User },
+                { value: "public" as const, label: t("filterPublic"), icon: Globe },
+                { value: "private" as const, label: t("filterPrivate"), icon: Lock },
+                { value: "all" as const, label: t("filterAll"), icon: FolderOpen },
               ] as const).map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
@@ -142,7 +144,7 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search projects..."
+                placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
@@ -167,17 +169,17 @@ export default function HomePage() {
                 )}
                 <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-slate-100">
                   {filter === "private"
-                    ? "Sign in to see private projects"
-                    : "Sign in to see your projects"}
+                    ? t("signInPrivatePromptTitle")
+                    : t("signInPromptTitle")}
                 </h3>
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                   {filter === "private"
-                    ? "View all private projects you own or are a member of"
-                    : "View all projects you own or are a member of"}
+                    ? t("signInPrivatePromptDescription")
+                    : t("signInPromptDescription")}
                 </p>
                 <Button className="mt-6" onClick={() => signIn()}>
                   <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
+                  {tAuth("signIn")}
                 </Button>
               </div>
             ) : isLoading ? (
@@ -191,14 +193,14 @@ export default function HomePage() {
               </div>
             ) : error && !data ? (
               <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900/50 dark:bg-red-900/20">
-                <p className="text-red-700 dark:text-red-400">{error instanceof Error ? error.message : "Failed to load projects"}</p>
+                <p className="text-red-700 dark:text-red-400">{error instanceof Error ? error.message : t("failedToLoad")}</p>
                 <Button
                   variant="outline"
                   className="mt-4"
                   onClick={() => refetch()}
                   disabled={isFetching}
                 >
-                  {isFetching ? "Retrying..." : "Try Again"}
+                  {isFetching ? tCommon("retrying") : tCommon("retry")}
                 </Button>
               </div>
             ) : projects.length === 0 ? (
@@ -206,27 +208,27 @@ export default function HomePage() {
                 <FolderOpen className="mx-auto h-12 w-12 text-slate-400" />
                 <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-slate-100">
                   {debouncedSearch
-                    ? "No projects found"
+                    ? t("noProjectsFound")
                     : filter === "private"
-                    ? "No private projects yet"
+                    ? t("noPrivateProjectsYet")
                     : filter === "mine"
-                    ? "No projects yet"
-                    : "No projects available"}
+                    ? t("noProjectsYet")
+                    : t("noProjectsAvailable")}
                 </h3>
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                   {debouncedSearch
-                    ? "Try a different search term"
+                    ? t("tryDifferentSearch")
                     : filter === "private" && isAuthenticated
-                    ? "You are not a member of any private projects, and do not own any private projects. Create your first private project to get started."
+                    ? t("noPrivateProjectsDescription")
                     : filter === "mine" && isAuthenticated
-                    ? "Create your first project to get started"
-                    : "Check back later for public projects"}
+                    ? t("createFirstProject")
+                    : t("checkBackLater")}
                 </p>
                 {(filter === "mine" || filter === "private") && isAuthenticated && !debouncedSearch && (
                   <Link href="/projects/new" className="mt-4 inline-block">
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      {filter === "private" ? "Create Private Project" : "Create Project"}
+                      {filter === "private" ? t("createPrivateProject") : t("createProject")}
                     </Button>
                   </Link>
                 )}
@@ -235,8 +237,8 @@ export default function HomePage() {
               <>
                 <div className="mb-4 text-sm text-slate-600 dark:text-slate-400">
                   {debouncedSearch
-                    ? `${total} ${total === 1 ? "result" : "results"} for "${debouncedSearch}"`
-                    : `${total} ${total === 1 ? "project" : "projects"}`}
+                    ? t("searchCount", { count: total, query: debouncedSearch })
+                    : t("count", { count: total })}
                   {isFiltered && (
                     <span className="text-slate-400 dark:text-slate-500">
                       {` (of ${unfilteredTotal})`}
@@ -258,7 +260,7 @@ export default function HomePage() {
                       onClick={handleLoadMore}
                       disabled={isFetchingNextPage}
                     >
-                      {isFetchingNextPage ? "Loading..." : nextPageError ? "Retry" : "Load More"}
+                      {isFetchingNextPage ? t("loadingMore") : nextPageError ? t("retryLoad") : t("loadMore")}
                     </Button>
                   </div>
                 )}
