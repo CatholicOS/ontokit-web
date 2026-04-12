@@ -109,18 +109,21 @@ export function useELKLayout(): LayoutResult {
           },
         );
 
-        const layoutedEdges: Edge<OntologyEdgeData>[] = data.edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          type: "ontologyEdge",
-          ...(e.edge_type === "subClassOf" && {
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8", width: 16, height: 16 },
-          }),
-          data: {
-            edgeType: normalizeEdgeType(e.edge_type),
-          },
-        }));
+        const layoutedEdges: Edge<OntologyEdgeData>[] = data.edges.map((e) => {
+          const normalized = normalizeEdgeType(e.edge_type);
+          return {
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            type: "ontologyEdge",
+            ...(normalized === "subClassOf" && {
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8", width: 16, height: 16 },
+            }),
+            data: {
+              edgeType: normalized,
+            },
+          };
+        });
 
         if (layoutRunRef.current !== localRunId) return;
         setNodes(layoutedNodes);
