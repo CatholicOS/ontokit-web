@@ -203,11 +203,10 @@ export const EntityTreeNodeRow = memo(function EntityTreeNodeRow({
     >
       {/* Expand/collapse chevron or leaf dot — same 16px box for alignment */}
       {hasChildren ? (
-        <button
+        <span
           onClick={handleToggle}
           className="w-4 h-4 flex items-center justify-center flex-shrink-0"
-          tabIndex={-1}
-          aria-hidden="true"
+          role="presentation"
         >
           {node.isLoading ? (
             <Circle className="w-3 h-3 animate-pulse" />
@@ -216,7 +215,7 @@ export const EntityTreeNodeRow = memo(function EntityTreeNodeRow({
           ) : (
             <ChevronRight className="w-4 h-4" />
           )}
-        </button>
+        </span>
       ) : (
         <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
           <span className="tree-leaf-dot" />
