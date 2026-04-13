@@ -9,11 +9,13 @@ import {
 import { PRListItem } from "./PRListItem";
 import { cn } from "@/lib/utils";
 import { GitPullRequest } from "lucide-react";
+import type { EditorMode } from "@/lib/stores/editorModeStore";
 
 interface PRListProps {
   projectId: string;
   accessToken?: string;
   defaultStatus?: PRStatus | "all";
+  mode?: EditorMode;
   className?: string;
 }
 
@@ -21,8 +23,10 @@ export function PRList({
   projectId,
   accessToken,
   defaultStatus = "open",
+  mode = "developer",
   className,
 }: PRListProps) {
+  const isSuggestionMode = mode === "standard";
   const [prs, setPrs] = useState<PullRequest[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,8 +73,8 @@ export function PRList({
 
   const statusTabs: { value: PRStatus | "all"; label: string }[] = [
     { value: "open", label: "Open" },
-    { value: "merged", label: "Merged" },
-    { value: "closed", label: "Closed" },
+    { value: "merged", label: isSuggestionMode ? "Accepted" : "Merged" },
+    { value: "closed", label: isSuggestionMode ? "Rejected" : "Closed" },
     { value: "all", label: "All" },
   ];
 
@@ -96,7 +100,7 @@ export function PRList({
         </div>
 
         <span className="text-sm text-slate-500">
-          {total} pull request{total !== 1 ? "s" : ""}
+          {total} {isSuggestionMode ? (total !== 1 ? "suggestions" : "suggestion") : (total !== 1 ? "pull requests" : "pull request")}
         </span>
       </div>
 
@@ -113,10 +117,18 @@ export function PRList({
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-12 text-center dark:border-slate-700 dark:bg-slate-800/50">
           <GitPullRequest className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
           <h3 className="mt-4 font-medium text-slate-900 dark:text-slate-100">
-            No pull requests
+            {isSuggestionMode ? "No suggestions" : "No pull requests"}
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            {statusFilter === "open"
+            {isSuggestionMode
+              ? statusFilter === "open"
+                ? "There are no open suggestions for this project."
+                : statusFilter === "merged"
+                ? "No suggestions have been accepted yet."
+                : statusFilter === "closed"
+                ? "No suggestions have been rejected."
+                : "No suggestions have been submitted for this project."
+              : statusFilter === "open"
               ? "There are no open pull requests for this project."
               : statusFilter === "merged"
               ? "No pull requests have been merged yet."
@@ -130,7 +142,7 @@ export function PRList({
           {/* PR List */}
           <div className="space-y-3">
             {prs.map((pr) => (
-              <PRListItem key={pr.id} pr={pr} projectId={projectId} />
+              <PRListItem key={pr.id} pr={pr} projectId={projectId} mode={mode} />
             ))}
           </div>
 

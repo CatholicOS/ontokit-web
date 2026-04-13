@@ -22,12 +22,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { branchesApi } from "@/lib/api/revisions";
+import type { EditorMode } from "@/lib/stores/editorModeStore";
 
 interface PRActionsProps {
   projectId: string;
   pr: PullRequest;
   accessToken: string;
   userRole?: string;
+  mode?: EditorMode;
   onUpdate: (pr: PullRequest) => void;
   className?: string;
 }
@@ -37,9 +39,11 @@ export function PRActions({
   pr,
   accessToken,
   userRole,
+  mode = "developer",
   onUpdate,
   className,
 }: PRActionsProps) {
+  const isSuggestionMode = mode === "standard";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -341,7 +345,7 @@ export function PRActions({
             Review
           </Button>
 
-          {/* Merge button */}
+          {/* Merge / Accept button */}
           {canMerge && (
             <Button
               size="sm"
@@ -359,11 +363,11 @@ export function PRActions({
               ) : (
                 <GitMerge className="h-4 w-4" />
               )}
-              Merge
+              {isSuggestionMode ? "Accept" : "Merge"}
             </Button>
           )}
 
-          {/* Close button */}
+          {/* Close / Reject button */}
           <Button
             size="sm"
             variant="ghost"
@@ -372,7 +376,7 @@ export function PRActions({
             className="gap-1 text-red-600 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
           >
             <XCircle className="h-4 w-4" />
-            Close
+            {isSuggestionMode ? "Reject" : "Close"}
           </Button>
         </div>
       )}
@@ -382,9 +386,11 @@ export function PRActions({
         open={showMergeDialog}
         onOpenChange={setShowMergeDialog}
         onConfirm={handleMerge}
-        title="Merge Pull Request"
-        description={`Are you sure you want to merge "${pr.title}" into ${pr.target_branch}?`}
-        confirmLabel="Merge"
+        title={isSuggestionMode ? "Accept Suggestion" : "Merge Pull Request"}
+        description={isSuggestionMode
+          ? `Are you sure you want to accept "${pr.title}" into ${pr.target_branch}?`
+          : `Are you sure you want to merge "${pr.title}" into ${pr.target_branch}?`}
+        confirmLabel={isSuggestionMode ? "Accept" : "Merge"}
         variant="default"
       >
         <label className="flex items-center gap-2 py-2">
@@ -405,9 +411,11 @@ export function PRActions({
         open={showCloseDialog}
         onOpenChange={setShowCloseDialog}
         onConfirm={handleClose}
-        title="Close Pull Request"
-        description={`Are you sure you want to close "${pr.title}"? This will not delete the branch and can be reopened later.`}
-        confirmLabel="Close PR"
+        title={isSuggestionMode ? "Reject Suggestion" : "Close Pull Request"}
+        description={isSuggestionMode
+          ? `Are you sure you want to reject "${pr.title}"? This will not delete the branch and can be reopened later.`
+          : `Are you sure you want to close "${pr.title}"? This will not delete the branch and can be reopened later.`}
+        confirmLabel={isSuggestionMode ? "Reject" : "Close PR"}
         variant="danger"
       />
 

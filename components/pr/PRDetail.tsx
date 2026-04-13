@@ -13,6 +13,7 @@ import { PRActions } from "./PRActions";
 import { PRCommentThread } from "./PRCommentThread";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { EditorMode } from "@/lib/stores/editorModeStore";
 import {
   GitPullRequest,
   GitMerge,
@@ -39,6 +40,7 @@ interface PRDetailProps {
   accessToken?: string;
   userRole?: string;
   currentUserId?: string;
+  mode?: EditorMode;
   className?: string;
 }
 
@@ -48,6 +50,7 @@ export function PRDetail({
   accessToken,
   userRole,
   currentUserId,
+  mode = "developer",
   className,
 }: PRDetailProps) {
   const [pr, setPR] = useState<PullRequest | null>(null);
@@ -301,6 +304,7 @@ export function PRDetail({
           pr={pr}
           accessToken={accessToken}
           userRole={userRole}
+          mode={mode}
           onUpdate={setPR}
         />
       )}
