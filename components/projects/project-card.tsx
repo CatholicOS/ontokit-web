@@ -1,22 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Globe, Lock, Users } from "lucide-react";
+import { Globe, Lock, Users, Star } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import type { Project } from "@/lib/api/projects";
+import { projectApi, type Project } from "@/lib/api/projects";
 import { derivePermissions } from "@/lib/hooks/useProject";
 import { useEditorModeStore } from "@/lib/stores/editorModeStore";
 
 interface ProjectCardProps {
   project: Project;
   className?: string;
+  accessToken?: string;
+  onFavoriteChange?: (projectId: string, isFavorited: boolean) => void;
 }
 
-export function ProjectCard({ project, className }: ProjectCardProps) {
+export function ProjectCard({ project, className, accessToken, onFavoriteChange }: ProjectCardProps) {
   const { data: session } = useSession();
   const { canSuggest } = derivePermissions(project, session?.accessToken);
   const preferEditMode = useEditorModeStore((s) => s.preferEditMode);
+  const [isFavorited, setIsFavorited] = useState(project.is_favorited ?? false);
+  const [isToggling, setIsToggling] = useState(false);
 
   // When the user has prefer-edit-mode on AND has at least suggester rights,
   // open the project straight to the editor. Anyone without edit/suggest
@@ -24,6 +29,28 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
   const href = preferEditMode && canSuggest
     ? `/projects/${project.id}/editor`
     : `/projects/${project.id}`;
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!accessToken || isToggling) return;
+
+    const previous = isFavorited;
+    setIsFavorited(!previous); // optimistic update
+    setIsToggling(true);
+
+    try {
+      if (previous) {
+        await projectApi.unfavorite(project.id, accessToken);
+      } else {
+        await projectApi.favorite(project.id, accessToken);
+      }
+      onFavoriteChange?.(project.id, !previous);
+    } catch {
+      setIsFavorited(previous); // rollback on error
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   return (
     <Link
@@ -47,20 +74,44 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
             </p>
           )}
         </div>
-        <div
-          className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-            project.is_public
-              ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+        <div className="flex items-center gap-1.5 shrink-0">
+          {accessToken && (
+            <button
+              onClick={handleFavoriteClick}
+              disabled={isToggling}
+              aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+              aria-pressed={isFavorited}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                "hover:bg-amber-50 dark:hover:bg-amber-900/20",
+                isToggling && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Star
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  isFavorited
+                    ? "fill-amber-400 text-amber-400"
+                    : "text-slate-300 dark:text-slate-600 hover:text-amber-400"
+                )}
+              />
+            </button>
           )}
-          title={project.is_public ? "Public project" : "Private project"}
-        >
-          {project.is_public ? (
-            <Globe className="h-4 w-4" />
-          ) : (
-            <Lock className="h-4 w-4" />
-          )}
+          <div
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full",
+              project.is_public
+                ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+            )}
+            title={project.is_public ? "Public project" : "Private project"}
+          >
+            {project.is_public ? (
+              <Globe className="h-4 w-4" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+          </div>
         </div>
       </div>
 

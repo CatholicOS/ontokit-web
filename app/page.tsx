@@ -64,7 +64,26 @@ export default function HomePage() {
     enabled: status !== "loading" && !((filter === "mine" || filter === "private") && !isAuthenticated),
   });
 
-  const projects = data?.pages.flatMap((page) => page.items) ?? [];
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(() => {
+    const items = data?.pages.flatMap((page) => page.items) ?? [];
+    return new Set(items.filter((p) => p.is_favorited).map((p) => p.id));
+  });
+
+  const handleFavoriteChange = (projectId: string, isFavorited: boolean) => {
+    setFavoritedIds((prev) => {
+      const next = new Set(prev);
+      if (isFavorited) next.add(projectId);
+      else next.delete(projectId);
+      return next;
+    });
+  };
+
+  const rawProjects = data?.pages.flatMap((page) => page.items) ?? [];
+  const projects = [...rawProjects].sort((a, b) => {
+    const aFav = favoritedIds.has(a.id) ? 1 : 0;
+    const bFav = favoritedIds.has(b.id) ? 1 : 0;
+    return bFav - aFav;
+  });
   const total = data?.pages.at(-1)?.total ?? 0;
   const unfilteredTotal = data?.pages.at(-1)?.unfiltered_total ?? 0;
   const isFiltered = (!!debouncedSearch || filter !== "all") && unfilteredTotal > total;
@@ -245,7 +264,12 @@ export default function HomePage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {projects.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      accessToken={session?.accessToken}
+                      onFavoriteChange={handleFavoriteChange}
+                    />
                   ))}
                 </div>
                 {hasNextPage && (
