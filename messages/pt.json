@@ -25,7 +25,7 @@
   "nav": {
     "home": "Início",
     "projects": "Projetos",
-    "info": "Informações",
+    "info": "Info",
     "documentation": "Documentação",
     "apiReference": "Referência da API",
     "settings": "Configurações",
@@ -51,7 +51,7 @@
     "addIndividual": "Adicionar Indivíduo"
   },
   "class": {
-    "label": "Rótulo",
+    "label": "Label",
     "comment": "Comentário",
     "iri": "IRI",
     "parent": "Classe Pai",
@@ -63,7 +63,7 @@
   },
   "property": {
     "domain": "Domínio",
-    "range": "Intervalo",
+    "range": "Range",
     "type": "Tipo",
     "objectProperty": "Propriedade de Objeto",
     "dataProperty": "Propriedade de Dado",
@@ -99,8 +99,8 @@
     "push": "Push",
     "pull": "Pull",
     "branch": "Branch",
-    "merge": "Mesclar",
-    "diff": "Ver Alterações"
+    "merge": "Merge",
+    "diff": "Ver Mudanças"
   },
   "errors": {
     "notFound": "Não encontrado",
@@ -132,7 +132,7 @@
     "tryDifferentSearch": "Tente um termo de busca diferente",
     "createFirstProject": "Crie seu primeiro projeto para começar",
     "createPrivateProject": "Criar Projeto Privado",
-    "checkBackLater": "Verifique novamente mais tarde por projetos públicos",
+    "checkBackLater": "Volte mais tarde para ver projetos públicos",
     "failedToLoad": "Falha ao carregar projetos",
     "loadMore": "Carregar Mais",
     "loadingMore": "Carregando...",
