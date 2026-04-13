@@ -64,25 +64,19 @@ export default function HomePage() {
     enabled: status !== "loading" && !((filter === "mine" || filter === "private") && !isAuthenticated),
   });
 
-  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(() => {
-    const items = data?.pages.flatMap((page) => page.items) ?? [];
-    return new Set(items.filter((p) => p.is_favorited).map((p) => p.id));
-  });
+  // Optimistic overrides: only tracks changes made this session.
+  // Server data (is_favorited) remains the source of truth for all other projects.
+  const [favoriteOverrides, setFavoriteOverrides] = useState<Map<string, boolean>>(new Map());
 
   const handleFavoriteChange = (projectId: string, isFavorited: boolean) => {
-    setFavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (isFavorited) next.add(projectId);
-      else next.delete(projectId);
-      return next;
-    });
+    setFavoriteOverrides((prev) => new Map(prev).set(projectId, isFavorited));
   };
 
   const rawProjects = data?.pages.flatMap((page) => page.items) ?? [];
   const projects = [...rawProjects].sort((a, b) => {
-    const aFav = favoritedIds.has(a.id) ? 1 : 0;
-    const bFav = favoritedIds.has(b.id) ? 1 : 0;
-    return bFav - aFav;
+    const aFav = favoriteOverrides.has(a.id) ? favoriteOverrides.get(a.id)! : (a.is_favorited ?? false);
+    const bFav = favoriteOverrides.has(b.id) ? favoriteOverrides.get(b.id)! : (b.is_favorited ?? false);
+    return (bFav ? 1 : 0) - (aFav ? 1 : 0);
   });
   const total = data?.pages.at(-1)?.total ?? 0;
   const unfilteredTotal = data?.pages.at(-1)?.unfiltered_total ?? 0;
@@ -266,7 +260,12 @@ export default function HomePage() {
                   {projects.map((project) => (
                     <ProjectCard
                       key={project.id}
-                      project={project}
+                      project={{
+                        ...project,
+                        is_favorited: favoriteOverrides.has(project.id)
+                          ? favoriteOverrides.get(project.id)
+                          : project.is_favorited,
+                      }}
                       accessToken={session?.accessToken}
                       onFavoriteChange={handleFavoriteChange}
                     />

@@ -20,7 +20,7 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
   const { data: session } = useSession();
   const { canSuggest } = derivePermissions(project, session?.accessToken);
   const preferEditMode = useEditorModeStore((s) => s.preferEditMode);
-  const [isFavorited, setIsFavorited] = useState(project.is_favorited ?? false);
+  const isFavorited = project.is_favorited ?? false;
   const [isToggling, setIsToggling] = useState(false);
 
   // When the user has prefer-edit-mode on AND has at least suggester rights,
@@ -34,19 +34,18 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
     e.preventDefault();
     if (!accessToken || isToggling) return;
 
-    const previous = isFavorited;
-    setIsFavorited(!previous); // optimistic update
+    // Optimistic update via parent — parent holds the source of truth
+    onFavoriteChange?.(project.id, !isFavorited);
     setIsToggling(true);
 
     try {
-      if (previous) {
+      if (isFavorited) {
         await projectApi.unfavorite(project.id, accessToken);
       } else {
         await projectApi.favorite(project.id, accessToken);
       }
-      onFavoriteChange?.(project.id, !previous);
     } catch {
-      setIsFavorited(previous); // rollback on error
+      onFavoriteChange?.(project.id, isFavorited); // rollback in parent
     } finally {
       setIsToggling(false);
     }
