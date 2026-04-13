@@ -2883,7 +2883,10 @@ function RemoteSyncSection({
               {/* Repository */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className={cn(
+                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
+                    isWebhookDriven && "opacity-60"
+                  )}>
                     Repository owner
                   </label>
                   <input
@@ -2901,7 +2904,10 @@ function RemoteSyncSection({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className={cn(
+                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
+                    isWebhookDriven && "opacity-60"
+                  )}>
                     Repository name
                   </label>
                   <input
@@ -2920,12 +2926,6 @@ function RemoteSyncSection({
                 </div>
               </div>
 
-              {isWebhookDriven && (
-                <p className="text-xs text-indigo-500 dark:text-indigo-400">
-                  Repository fields are managed by the GitHub integration.
-                </p>
-              )}
-
               {/* Same-repo info when editing form matches GitHub integration */}
               {!isWebhookDriven && githubIntegration &&
                 repoOwner === githubIntegration.repo_owner &&
@@ -2939,7 +2939,10 @@ function RemoteSyncSection({
               {/* Branch + File path */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className={cn(
+                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
+                    isWebhookDriven && "opacity-60"
+                  )}>
                     Branch
                   </label>
                   <input
@@ -2957,7 +2960,10 @@ function RemoteSyncSection({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className={cn(
+                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
+                    isWebhookDriven && "opacity-60"
+                  )}>
                     File path
                   </label>
                   <input
@@ -2975,6 +2981,12 @@ function RemoteSyncSection({
                   />
                 </div>
               </div>
+
+              {isWebhookDriven && (
+                <p className="text-xs text-indigo-500 dark:text-indigo-400">
+                  Repository fields are managed by the GitHub integration.
+                </p>
+              )}
 
               {/* Frequency + Update mode */}
               <div className="grid grid-cols-2 gap-3">
