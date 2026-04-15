@@ -124,6 +124,13 @@ export default function EditorPage() {
   // UI state (editor-only)
   const [showHistory, setShowHistory] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
+
+  // Reset lint WS status when the health check panel is hidden or mode switches away from developer
+  useEffect(() => {
+    if (!showHealthCheck || editorMode !== "developer") {
+      setLintWsStatus("disconnected");
+    }
+  }, [showHealthCheck, editorMode]);
   const sourceEditorRef = useRef<OntologySourceEditorRef>(null);
   const entityNavigationRef = useRef<((iri: string, type?: string) => void) | null>(null);
 
