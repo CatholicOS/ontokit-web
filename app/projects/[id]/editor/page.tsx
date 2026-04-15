@@ -967,7 +967,7 @@ export default function EditorPage() {
                   purpose={collaboration.purpose}
                   endpoint={collaboration.endpoint}
                 />
-                {showHealthCheck && (
+                {showHealthCheck && editorMode === "developer" && (
                   <ConnectionStatus
                     state={lintWsStatus}
                     purpose="Real-time lint status updates"
