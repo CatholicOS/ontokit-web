@@ -42,6 +42,8 @@ import { useSuggestionBeacon } from "@/lib/hooks/useSuggestionBeacon";
 import { DeleteImpactAnalysis } from "@/components/editor/DeleteImpactAnalysis";
 import { RemoteSyncIndicator } from "@/components/editor/RemoteSyncIndicator";
 import { ShareButton } from "@/components/editor/ShareButton";
+import { useCollaborationStatus } from "@/lib/hooks/useCollaborationStatus";
+import type { ConnectionState } from "@/components/ui/ConnectionStatus";
 
 import type { OntologySourceEditorRef } from "@/components/editor/OntologySourceEditor";
 
@@ -107,10 +109,18 @@ export default function EditorPage() {
     selectedNodeFallback,
     sourceContent, setSourceContent, isLoadingSource, sourceError, isPreloading,
     loadSourceContent, sourceIriIndex, setSourceIriIndex,
-    connectionStatus, wsEndpoint, wsPurpose,
     resetSourceState,
   } = viewer;
 
+  const collaboration = useCollaborationStatus({ projectId });
+  const [lintWsStatus, setLintWsStatus] = useState<ConnectionState>("disconnected");
+
+  // Restore selected class from URL query param once tree is ready
+  useEffect(() => {
+    if (!classIriParam || isTreeLoading || !nodes.length) return;
+    if (selectedIri === classIriParam) return;
+    navigateToNode(classIriParam);
+  }, [classIriParam, isTreeLoading, nodes.length, selectedIri, navigateToNode]);
   // UI state (editor-only)
   const [showHistory, setShowHistory] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
@@ -953,15 +963,17 @@ export default function EditorPage() {
               {/* WebSocket Connection Status */}
               <div className="flex items-center gap-1">
                 <ConnectionStatus
-                  state="disabled"
-                  purpose="Real-time collaboration (coming soon)"
-                  endpoint="/api/v1/collab/ws"
+                  state={collaboration.status}
+                  purpose={collaboration.purpose}
+                  endpoint={collaboration.endpoint}
                 />
-                <ConnectionStatus
-                  state={connectionStatus}
-                  purpose={wsPurpose}
-                  endpoint={wsEndpoint}
-                />
+                {showHealthCheck && (
+                  <ConnectionStatus
+                    state={lintWsStatus}
+                    purpose="Real-time lint status updates"
+                    endpoint={`/api/v1/projects/${projectId}/lint/ws`}
+                  />
+                )}
               </div>
 
               {/* Branch Selector */}
@@ -1100,6 +1112,9 @@ export default function EditorPage() {
                   selectedNodeFallback={selectedNodeFallback}
                   onUpdateClass={isSuggestionMode ? handleSuggestClassUpdate : handleUpdateClass}
                   detailRefreshKey={detailRefreshKey}
+                  showHealthCheck={showHealthCheck}
+                  onCloseHealthCheck={() => setShowHealthCheck(false)}
+                  onLintWsStatusChange={setLintWsStatus}
                   onUpdateProperty={isSuggestionMode ? handleSuggestPropertyUpdate : handleUpdateProperty}
                   onUpdateIndividual={isSuggestionMode ? handleSuggestIndividualUpdate : handleUpdateIndividual}
                   onReparentClass={handleReparentClass}

@@ -274,6 +274,15 @@ function ViewerContent({
               <ModeSwitcher />
             </div>
             <div className="flex items-center gap-2">
+              {/* WebSocket Connection Status */}
+              <div className="flex items-center gap-1">
+                <ConnectionStatus
+                  state="disabled"
+                  purpose="Real-time collaboration (coming soon)"
+                  endpoint="/api/v1/collab/ws"
+                />
+              </div>
+
               {/* Share */}
               <ShareButton
                 projectId={projectId}

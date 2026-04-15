@@ -106,6 +106,11 @@ export interface DeveloperEditorLayoutProps {
   onUpdateClass?: (classIri: string, data: ClassUpdatePayload) => Promise<void>;
   detailRefreshKey?: number;
 
+  // Side panels
+  showHealthCheck: boolean;
+  onCloseHealthCheck: () => void;
+  onLintWsStatusChange?: (status: import("@/components/ui/ConnectionStatus").ConnectionState) => void;
+
   // Property & Individual editing
   onUpdateProperty?: (propertyIri: string, data: TurtlePropertyUpdateData) => Promise<void>;
   onUpdateIndividual?: (individualIri: string, data: TurtleIndividualUpdateData) => Promise<void>;
@@ -160,6 +165,9 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
     selectedNodeFallback,
     onUpdateClass,
     detailRefreshKey,
+    showHealthCheck,
+    onCloseHealthCheck,
+    onLintWsStatusChange,
     onUpdateProperty,
     onUpdateIndividual,
     onReparentClass,
@@ -597,6 +605,21 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
               )}
             </div>
 
+            {/* Right Panel - Health Check */}
+            {showHealthCheck && (
+              <div className="w-96 flex-shrink-0">
+                <HealthCheckPanel
+                  projectId={projectId}
+                  accessToken={accessToken}
+                  branch={activeBranch}
+                  isOpen={showHealthCheck}
+                  onClose={onCloseHealthCheck}
+                  onNavigateToClass={(iri) => navigateToNode(iri)}
+                  canRunLint={canManage}
+                  onWsStatusChange={onLintWsStatusChange}
+                />
+              </div>
+            )}
           </>
         ) : (
           /* Source View */
