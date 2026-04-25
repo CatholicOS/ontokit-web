@@ -17,7 +17,16 @@ vi.mock("@xyflow/react", () => ({
     <div data-testid="edge-label-renderer">{children}</div>
   ),
   getBezierPath: (): [string, number, number] => ["M0,0 C10,10 20,20 30,30", 15, 15],
+  getSmoothStepPath: (): [string, number, number] => ["M0,0 L10,10 L30,30", 15, 15],
   Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
+}));
+
+// Mock the editor mode store — OntologyEdge subscribes for graphEdgeStyle.
+// Without this, Zustand's persist middleware initializes against window.matchMedia
+// (system theme detection), which jsdom doesn't ship.
+vi.mock("@/lib/stores/editorModeStore", () => ({
+  useEditorModeStore: (selector: (s: { graphEdgeStyle: string }) => unknown) =>
+    selector({ graphEdgeStyle: "smoothstep" }),
 }));
 
 describe("OntologyEdge", () => {
@@ -190,14 +199,14 @@ describe("OntologyEdge", () => {
     expect(hoverPath?.getAttribute("stroke-width")).toBe("16");
   });
 
-  it("always renders with bezier path", () => {
+  it("renders smoothstep path when graphEdgeStyle is 'smoothstep' (per store mock)", () => {
     render(
       <svg>
         <OntologyEdge {...baseProps} />
       </svg>
     );
     const edge = screen.getByTestId("base-edge-edge-1");
-    // getBezierPath mock returns a cubic bezier path
-    expect(edge.getAttribute("d")).toBe("M0,0 C10,10 20,20 30,30");
+    // Default mock returns "smoothstep" — getSmoothStepPath is invoked.
+    expect(edge.getAttribute("d")).toBe("M0,0 L10,10 L30,30");
   });
 });
