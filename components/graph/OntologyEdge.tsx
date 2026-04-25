@@ -5,9 +5,11 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
+  getSmoothStepPath,
   type EdgeProps,
 } from "@xyflow/react";
 import type { GraphEdgeType } from "@/lib/graph/types";
+import { useEditorModeStore } from "@/lib/stores/editorModeStore";
 
 export interface OntologyEdgeData {
   [key: string]: unknown;
@@ -59,8 +61,10 @@ export const OntologyEdge = memo(function OntologyEdge({
   const [hovered, setHovered] = useState(false);
   const edgeType = data?.edgeType ?? "subClassOf";
   const config = edgeTypeConfig[edgeType];
+  const edgeStyle = useEditorModeStore((s) => s.graphEdgeStyle);
 
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const pathBuilder = edgeStyle === "smoothstep" ? getSmoothStepPath : getBezierPath;
+  const [edgePath, labelX, labelY] = pathBuilder({
     sourceX,
     sourceY,
     sourcePosition,
