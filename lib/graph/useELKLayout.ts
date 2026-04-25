@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { MarkerType, type Node, type Edge } from "@xyflow/react";
 import type { EntityGraphResponse } from "@/lib/api/graph";
 import type { OntologyNodeData } from "@/components/graph/OntologyNode";
@@ -9,11 +9,20 @@ import type { GraphNodeType, GraphEdgeType } from "@/lib/graph/types";
 
 export type LayoutDirection = "TB" | "LR";
 
+export interface NodeHandlers {
+  onNavigate?: (iri: string) => void;
+  onExpandNode?: (iri: string) => void;
+}
+
 interface LayoutResult {
   nodes: Node<OntologyNodeData>[];
   edges: Edge<OntologyEdgeData>[];
   isLayouting: boolean;
   runLayout: (data: EntityGraphResponse, direction?: LayoutDirection) => Promise<void>;
+  /** Update keyboard/click handlers without re-running layout. Node data
+   *  receives stable callbacks that read from a ref, so changing handlers
+   *  won't bust React.memo on `OntologyNode`. */
+  setNodeHandlers: (handlers: NodeHandlers) => void;
 }
 
 export const NODE_WIDTH = 180;
@@ -42,6 +51,20 @@ export function useELKLayout(): LayoutResult {
   const [edges, setEdges] = useState<Edge<OntologyEdgeData>[]>([]);
   const [isLayouting, setIsLayouting] = useState(false);
   const layoutRunRef = useRef(0);
+
+  // Keyboard/click handlers live in a ref so they can be swapped without
+  // re-running layout or busting React.memo on OntologyNode.
+  const handlersRef = useRef<NodeHandlers>({});
+  const stableHandlers = useMemo(
+    () => ({
+      onNavigate: (iri: string) => handlersRef.current.onNavigate?.(iri),
+      onExpandNode: (iri: string) => handlersRef.current.onExpandNode?.(iri),
+    }),
+    [],
+  );
+  const setNodeHandlers = useCallback((h: NodeHandlers) => {
+    handlersRef.current = h;
+  }, []);
 
   const runLayout = useCallback(
     async (data: EntityGraphResponse, direction: LayoutDirection = "TB") => {
@@ -104,6 +127,8 @@ export function useELKLayout(): LayoutResult {
                 deprecated: false,
                 isExpanded: false,
                 layoutDirection: direction,
+                onNavigate: stableHandlers.onNavigate,
+                onExpandNode: stableHandlers.onExpandNode,
               },
             };
           },
@@ -135,5 +160,5 @@ export function useELKLayout(): LayoutResult {
     [],
   );
 
-  return { nodes, edges, isLayouting, runLayout };
+  return { nodes, edges, isLayouting, runLayout, setNodeHandlers };
 }

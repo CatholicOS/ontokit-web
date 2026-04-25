@@ -61,6 +61,7 @@ vi.mock("@/lib/graph/useELKLayout", () => ({
     edges: [],
     get isLayouting() { return mockIsLayouting; },
     runLayout: mockRunLayout,
+    setNodeHandlers: vi.fn(),
   }),
 }));
 
