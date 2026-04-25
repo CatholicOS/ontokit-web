@@ -159,7 +159,13 @@ function OntologyGraphInner({
 
   const [direction, setDirection] = useState<LayoutDirection>("TB");
   const toggleDirection = useCallback(() => setDirection((d) => (d === "TB" ? "LR" : "TB")), []);
-  const { nodes: layoutNodes, edges: layoutEdges, isLayouting, runLayout } = useELKLayout();
+  const {
+    nodes: layoutNodes,
+    edges: layoutEdges,
+    isLayouting,
+    runLayout,
+    setNodeHandlers,
+  } = useELKLayout();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [colorMode, setColorMode] = useState<ColorMode>("light");
@@ -190,6 +196,15 @@ function OntologyGraphInner({
       console.error("[OntologyGraph] ELK layout failed:", err);
     });
   }, [graphData, direction, runLayout, setNodes, setEdges]);
+
+  // Keep node-level keyboard handlers in sync with current callbacks. Stored
+  // via ref inside useELKLayout, so this does NOT trigger a re-layout.
+  useEffect(() => {
+    setNodeHandlers({
+      onNavigate: onNavigateToClass,
+      onExpandNode: expandNode,
+    });
+  }, [setNodeHandlers, onNavigateToClass, expandNode]);
 
   // Sync layout results to React Flow state (skip if graph was cleared)
   useEffect(() => {

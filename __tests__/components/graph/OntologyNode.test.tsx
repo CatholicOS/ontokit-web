@@ -49,71 +49,51 @@ describe("OntologyNode", () => {
     expect(screen.getByTestId("handle-source")).toBeDefined();
   });
 
-  it("calls onNavigate on click for non-external nodes", () => {
-    const onNavigate = vi.fn();
-    render(
-      <OntologyNode {...makeProps({ onNavigate })} />
-    );
-    fireEvent.click(screen.getByRole("button"));
-    expect(onNavigate).toHaveBeenCalledWith("node-1");
-  });
+  // Mouse interactions are handled by ReactFlow at the parent (onNodeClick /
+  // onNodeDoubleClick), not on the inner div, to avoid double-firing. The
+  // component therefore exposes ONLY keyboard handlers.
 
-  it("does not call onNavigate for external node type", () => {
+  it("Enter keydown calls onExpandNode (parity with single-click expand)", () => {
+    const onExpandNode = vi.fn();
     const onNavigate = vi.fn();
     render(
-      <OntologyNode {...makeProps({ nodeType: "external", onNavigate })} />
+      <OntologyNode {...makeProps({ nodeType: "class", onExpandNode, onNavigate })} />
     );
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
+    expect(onExpandNode).toHaveBeenCalledWith("node-1");
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
-  it("calls onExpandNode on double-click for unexplored nodes", () => {
-    const onExpandNode = vi.fn();
-    render(
-      <OntologyNode
-        {...makeProps({ nodeType: "unexplored", onExpandNode })}
-      />
-    );
-    fireEvent.doubleClick(screen.getByRole("button"));
-    expect(onExpandNode).toHaveBeenCalledWith("node-1");
-  });
-
-  it("does not call onExpandNode on double-click for non-unexplored nodes", () => {
+  it("Space keydown calls onExpandNode (parity with single-click expand)", () => {
     const onExpandNode = vi.fn();
     render(
       <OntologyNode {...makeProps({ nodeType: "class", onExpandNode })} />
     );
-    fireEvent.doubleClick(screen.getByRole("button"));
-    expect(onExpandNode).not.toHaveBeenCalled();
-  });
-
-  it("handles Enter keydown for unexplored node", () => {
-    const onExpandNode = vi.fn();
-    render(
-      <OntologyNode
-        {...makeProps({ nodeType: "unexplored", onExpandNode })}
-      />
-    );
-    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("button"), { key: " " });
     expect(onExpandNode).toHaveBeenCalledWith("node-1");
   });
 
-  it("handles Enter keydown for regular node (calls onNavigate)", () => {
+  it("Shift+Enter calls onNavigate (parity with double-click navigate)", () => {
     const onNavigate = vi.fn();
+    const onExpandNode = vi.fn();
     render(
-      <OntologyNode {...makeProps({ nodeType: "class", onNavigate })} />
+      <OntologyNode {...makeProps({ nodeType: "class", onNavigate, onExpandNode })} />
     );
-    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter", shiftKey: true });
     expect(onNavigate).toHaveBeenCalledWith("node-1");
+    expect(onExpandNode).not.toHaveBeenCalled();
   });
 
-  it("handles Space keydown", () => {
+  it("does not invoke handlers for external node type", () => {
+    const onExpandNode = vi.fn();
     const onNavigate = vi.fn();
     render(
-      <OntologyNode {...makeProps({ nodeType: "class", onNavigate })} />
+      <OntologyNode {...makeProps({ nodeType: "external", onExpandNode, onNavigate })} />
     );
-    fireEvent.keyDown(screen.getByRole("button"), { key: " " });
-    expect(onNavigate).toHaveBeenCalledWith("node-1");
+    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter", shiftKey: true });
+    expect(onExpandNode).not.toHaveBeenCalled();
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 
   it("shows child count when provided and > 0", () => {
@@ -162,18 +142,16 @@ describe("OntologyNode", () => {
     expect(label.className).toContain("line-through");
   });
 
-  it("sets aria-label with expand hint for unexplored", () => {
-    render(
-      <OntologyNode {...makeProps({ nodeType: "unexplored" })} />
-    );
+  it("sets aria-label with keyboard hint for non-external nodes", () => {
+    render(<OntologyNode {...makeProps({ nodeType: "class" })} />);
     const btn = screen.getByRole("button");
-    expect(btn.getAttribute("aria-label")).toBe(
-      "TestClass (click to expand)"
-    );
+    expect(btn.getAttribute("aria-label")).toContain("TestClass");
+    expect(btn.getAttribute("aria-label")).toContain("Enter to expand");
+    expect(btn.getAttribute("aria-label")).toContain("Shift+Enter to navigate");
   });
 
-  it("sets aria-label without expand hint for regular nodes", () => {
-    render(<OntologyNode {...makeProps({ nodeType: "class" })} />);
+  it("sets bare aria-label for external nodes", () => {
+    render(<OntologyNode {...makeProps({ nodeType: "external" })} />);
     const btn = screen.getByRole("button");
     expect(btn.getAttribute("aria-label")).toBe("TestClass");
   });
