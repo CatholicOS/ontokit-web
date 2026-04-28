@@ -20,6 +20,7 @@ import { useSelectionStore } from "@/lib/stores/selectionStore";
 import { useToast } from "@/lib/context/ToastContext";
 import { useProject, derivePermissions } from "@/lib/hooks/useProject";
 import type { OntologySourceEditorRef } from "@/components/editor/OntologySourceEditor";
+import { ConnectionStatus } from "@/components/ui/ConnectionStatus";
 
 export default function ProjectViewerPage() {
   const { data: session, status } = useSession();

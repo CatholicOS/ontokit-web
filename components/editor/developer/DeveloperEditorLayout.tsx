@@ -30,6 +30,7 @@ import { useSelectionStore } from "@/lib/stores/selectionStore";
 import { getLocalName } from "@/lib/utils";
 import { extractTreeLabelMap } from "@/lib/graph/buildGraphData";
 import { useAnnounce } from "@/components/ui/ScreenReaderAnnouncer";
+import { HealthCheckPanel } from "@/components/editor/HealthCheckPanel";
 
 const OntologySourceEditor = dynamic(
   () => import("@/components/editor/OntologySourceEditor").then((mod) => mod.OntologySourceEditor),
@@ -62,6 +63,7 @@ export interface DeveloperEditorLayoutProps {
   accessToken?: string;
   activeBranch?: string;
   canEdit: boolean;
+  canManage?: boolean;
   canSuggest?: boolean;
   isSuggestionMode?: boolean;
   // Tree state (from useOntologyTree)
@@ -107,8 +109,8 @@ export interface DeveloperEditorLayoutProps {
   detailRefreshKey?: number;
 
   // Side panels
-  showHealthCheck: boolean;
-  onCloseHealthCheck: () => void;
+  showHealthCheck?: boolean;
+  onCloseHealthCheck?: () => void;
   onLintWsStatusChange?: (status: import("@/components/ui/ConnectionStatus").ConnectionState) => void;
 
   // Property & Individual editing
@@ -130,6 +132,7 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
     accessToken,
     activeBranch,
     canEdit,
+    canManage = false,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     canSuggest = false,
     isSuggestionMode = false,
@@ -165,7 +168,7 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
     selectedNodeFallback,
     onUpdateClass,
     detailRefreshKey,
-    showHealthCheck,
+    showHealthCheck = false,
     onCloseHealthCheck,
     onLintWsStatusChange,
     onUpdateProperty,
@@ -613,7 +616,7 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
                   accessToken={accessToken}
                   branch={activeBranch}
                   isOpen={showHealthCheck}
-                  onClose={onCloseHealthCheck}
+                  onClose={onCloseHealthCheck ?? (() => {})}
                   onNavigateToClass={(iri) => navigateToNode(iri)}
                   canRunLint={canManage}
                   onWsStatusChange={onLintWsStatusChange}

@@ -14,8 +14,6 @@ export interface UseProjectViewerOptions {
   accessToken?: string;
   sessionStatus: "loading" | "authenticated" | "unauthenticated";
   activeBranch?: string;
-  /** Enable WebSocket connections (lint status, collaboration). Defaults to false. */
-  enableWebSocket?: boolean;
 }
 
 export function useProjectViewer({
@@ -23,7 +21,6 @@ export function useProjectViewer({
   accessToken,
   sessionStatus,
   activeBranch,
-  enableWebSocket = false,
 }: UseProjectViewerOptions) {
   // Project data from shared React Query cache
   const {
