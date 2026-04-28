@@ -249,7 +249,7 @@ export function HealthCheckPanel({
       }
       onWsStatusChange?.("disconnected");
     };
-  }, [isOpen, projectId, accessToken, fetchData, onWsStatusChange]);
+  }, [isOpen, projectId, accessToken, onWsStatusChange]);
 
   const handleClearResults = async () => {
     if (!accessToken) return;

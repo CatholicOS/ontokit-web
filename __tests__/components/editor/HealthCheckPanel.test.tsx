@@ -13,7 +13,7 @@ vi.mock("@/lib/api/lint", () => ({
     getLintConfig: vi.fn(),
     getLevels: vi.fn(),
   },
-  createLintWebSocket: vi.fn(() => ({ close: vi.fn() })),
+  createLintWebSocket: vi.fn(() => ({ close: vi.fn(), addEventListener: vi.fn() })),
 }));
 
 vi.mock("@/lib/api/quality", () => ({
@@ -133,7 +133,7 @@ describe("HealthCheckPanel", () => {
       checked_at: "",
       duration_ms: 0,
     });
-    mockCreateLintWebSocket.mockReturnValue({ close: vi.fn() } as unknown as WebSocket);
+    mockCreateLintWebSocket.mockReturnValue({ close: vi.fn(), addEventListener: vi.fn() } as unknown as WebSocket);
     mockQualityApi.getLatestDuplicates.mockResolvedValue({
       clusters: [],
       threshold: 0.85,

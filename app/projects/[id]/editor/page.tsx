@@ -973,7 +973,7 @@ export default function EditorPage() {
                   purpose={collaboration.purpose}
                   endpoint={collaboration.endpoint}
                 />
-                {showHealthCheck && editorMode === "developer" && (
+                {showHealthCheck && (
                   <ConnectionStatus
                     state={lintWsStatus}
                     purpose="Real-time lint status updates"
@@ -1178,6 +1178,7 @@ export default function EditorPage() {
                 branch={activeBranch}
                 isOpen={showHealthCheck}
                 onClose={() => setShowHealthCheck(false)}
+                onWsStatusChange={setLintWsStatus}
                 onNavigateToClass={(iri, subjectType) => {
                   if (entityNavigationRef.current) {
                     entityNavigationRef.current(iri, subjectType);
