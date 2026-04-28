@@ -1809,7 +1809,7 @@ describe("HealthCheckPanel", () => {
     mockCreateLintWebSocket.mockImplementation(
       (_projectId: string, onMessage: (msg: LintWebSocketMessage) => void) => {
         capturedLintOnMessage = onMessage;
-        return { close: vi.fn() } as unknown as WebSocket;
+        return { close: vi.fn(), addEventListener: vi.fn() } as unknown as WebSocket;
       }
     );
 
