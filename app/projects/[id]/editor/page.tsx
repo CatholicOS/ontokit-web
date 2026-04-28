@@ -1169,8 +1169,8 @@ export default function EditorPage() {
             )}
           </div>
 
-          {/* Right Panel - Health Check (available in both modes) */}
-          {showHealthCheck && (
+          {/* Right Panel - Health Check (standard mode only; developer mode uses DeveloperEditorLayout's panel) */}
+          {showHealthCheck && editorMode !== "developer" && (
             <div className="w-96 flex-shrink-0">
               <HealthCheckPanel
                 projectId={projectId}
