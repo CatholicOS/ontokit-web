@@ -2088,11 +2088,11 @@ describe("HealthCheckPanel", () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {
         const onWsStatusChange = vi.fn();
-        let capturedOpenListener: (() => void) | null = null;
+        const captured: { openListener: (() => void) | null } = { openListener: null };
         mockCreateLintWebSocket.mockImplementation(
           (_projectId: string, _onMessage: (msg: LintWebSocketMessage) => void) => {
             const ws = { close: vi.fn(), addEventListener: vi.fn((event: string, cb: () => void) => {
-              if (event === "open") capturedOpenListener = cb;
+              if (event === "open") captured.openListener = cb;
             }) };
             return ws as unknown as WebSocket;
           }
@@ -2102,7 +2102,7 @@ describe("HealthCheckPanel", () => {
         expect(onWsStatusChange).toHaveBeenCalledWith("connecting");
 
         await vi.advanceTimersByTimeAsync(110);
-        capturedOpenListener?.();
+        captured.openListener?.();
         expect(onWsStatusChange).toHaveBeenCalledWith("connected");
       } finally {
         vi.useRealTimers();
@@ -2113,11 +2113,11 @@ describe("HealthCheckPanel", () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {
         const onWsStatusChange = vi.fn();
-        let capturedCloseListener: (() => void) | null = null;
+        const captured: { closeListener: (() => void) | null } = { closeListener: null };
         mockCreateLintWebSocket.mockImplementation(
           (_projectId: string, _onMessage: (msg: LintWebSocketMessage) => void) => {
             const ws = { close: vi.fn(), addEventListener: vi.fn((event: string, cb: () => void) => {
-              if (event === "close") capturedCloseListener = cb;
+              if (event === "close") captured.closeListener = cb;
             }) };
             return ws as unknown as WebSocket;
           }
@@ -2125,7 +2125,7 @@ describe("HealthCheckPanel", () => {
 
         setup({ onWsStatusChange });
         await vi.advanceTimersByTimeAsync(110);
-        capturedCloseListener?.();
+        captured.closeListener?.();
         expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
       } finally {
         vi.useRealTimers();
