@@ -2077,6 +2077,76 @@ describe("HealthCheckPanel", () => {
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => { cb(0); return 0; });
   });
 
+  describe("onWsStatusChange callbacks", () => {
+    it("calls onWsStatusChange('disconnected') immediately when isOpen is false", () => {
+      const onWsStatusChange = vi.fn();
+      setup({ isOpen: false, onWsStatusChange });
+      expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
+    });
+
+    it("calls onWsStatusChange('connecting') then 'connected' when WS opens", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const onWsStatusChange = vi.fn();
+        let capturedOpenListener: (() => void) | null = null;
+        mockCreateLintWebSocket.mockImplementation(
+          (_projectId: string, _onMessage: (msg: LintWebSocketMessage) => void) => {
+            const ws = { close: vi.fn(), addEventListener: vi.fn((event: string, cb: () => void) => {
+              if (event === "open") capturedOpenListener = cb;
+            }) };
+            return ws as unknown as WebSocket;
+          }
+        );
+
+        setup({ onWsStatusChange });
+        expect(onWsStatusChange).toHaveBeenCalledWith("connecting");
+
+        await vi.advanceTimersByTimeAsync(110);
+        capturedOpenListener?.();
+        expect(onWsStatusChange).toHaveBeenCalledWith("connected");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("calls onWsStatusChange('disconnected') when WS closes", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const onWsStatusChange = vi.fn();
+        let capturedCloseListener: (() => void) | null = null;
+        mockCreateLintWebSocket.mockImplementation(
+          (_projectId: string, _onMessage: (msg: LintWebSocketMessage) => void) => {
+            const ws = { close: vi.fn(), addEventListener: vi.fn((event: string, cb: () => void) => {
+              if (event === "close") capturedCloseListener = cb;
+            }) };
+            return ws as unknown as WebSocket;
+          }
+        );
+
+        setup({ onWsStatusChange });
+        await vi.advanceTimersByTimeAsync(110);
+        capturedCloseListener?.();
+        expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("calls onWsStatusChange('disconnected') on cleanup", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const onWsStatusChange = vi.fn();
+        const { unmount } = setup({ onWsStatusChange });
+        await vi.advanceTimersByTimeAsync(110);
+        onWsStatusChange.mockClear();
+        unmount();
+        expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   it("does not reopen the lint WebSocket when the issue filter changes", async () => {
     // The fetchDataRef pattern keeps `filter` out of the WS effect's deps so
     // changing filters re-issues HTTP for filtered issues without tearing
