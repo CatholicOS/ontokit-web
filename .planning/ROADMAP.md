@@ -206,7 +206,7 @@ Plans:
 **Milestone**: v0.5.0
 **Goal**: Move the entity graph from a peer-tab in Developer view (and a hidden icon button in Standard view) into a `Detail | Graph` tab strip at the top of the right-side detail pane, applied uniformly across both views and across all three entity types (class, property, individual). Property graphs render real domain/range/parent-property edges (an explicit improvement over WebProtege's empty-island treatment).
 **Depends on**: none (touches Standard and Developer layouts independently of other Phase 17+ work)
-**Requirements**: derived from `.planning/notes/graph-as-entity-pane.md` decisions 1-8; to be formalized via /gsd-spec-phase
+**Requirements**: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11 (locked in 17-SPEC.md)
 **Success Criteria** (what must be TRUE):
   1. Both Standard and Developer views render a `Detail | Graph` tab strip at the top of the right-side detail pane for all three entity types (class, property, individual). The Developer view's `Tree | Source | Graph` peer-tab strip is reduced to `Tree | Source` — no separate graph view.
   2. Single-click on a non-focus graph node re-centers the graph; double-click fully selects the entity (URL update, tree highlight, detail pane refresh). Pre-existing behavior preserved.
@@ -215,7 +215,11 @@ Plans:
   5. The in-pane graph has an "Expand" affordance that opens the existing `EntityGraphModal` (no new modal component).
   6. Property graphs render domain classes, range classes, parent/child properties, and see-also as actual nodes/edges — not a single isolated focus node. Annotation properties render an empty-state message when they have no domain/range/see-also.
   7. The Standard view's prior small "Graph" icon button in the detail panel is removed; the new tab strip is its only graph entry point in that view.
-**Plans**: TBD (4-6 plans expected: data-layer changes for property/individual graph endpoints, tab-strip component, Standard view integration, Developer view integration, modal-expand wiring, visual verification)
+**Plans**: 3 plans
+Plans:
+- [ ] 17-01-PLAN.md — ontokit-api: extend /entity-graph for property + individual focus + edge_kind enum + tests (cross-repo, autonomous: false)
+- [ ] 17-02-PLAN.md — ontokit-web plumbing: PaneTabStrip + SourceTabBody + FullSourceOverlay + useFullSourceOverlay + selectionStore activePaneTab + EntityModal rename + OntologyEdge palette extension
+- [ ] 17-03-PLAN.md — ontokit-web layout integration: wire PaneTabStrip into Standard + Developer layouts; remove Graph icon button + Source link + Tree|Source|Graph mode strip; AI smoke test + human UAT checklist
 **UI hint**: yes
 **Refs**: `.planning/notes/graph-as-entity-pane.md` (decision capture)
 
