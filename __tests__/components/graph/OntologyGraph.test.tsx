@@ -2,6 +2,32 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { EntityGraphResponse } from "@/lib/api/graph";
 
+// editorModeStore subscribes to matchMedia at module load — provide a stub
+// before the toggle button (and its store dependency) are imported.
+vi.hoisted(() => {
+  (globalThis as Record<string, unknown>).matchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  });
+  if (
+    !globalThis.localStorage ||
+    typeof globalThis.localStorage.setItem !== "function"
+  ) {
+    const store = new Map<string, string>();
+    (globalThis as Record<string, unknown>).localStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+      clear: () => store.clear(),
+      get length() {
+        return store.size;
+      },
+      key: (index: number) => [...store.keys()][index] ?? null,
+    };
+  }
+});
+
 // ── Mocks ──────────────────────────────────────────────────────────
 
 const mockUseGraphData = vi.fn();
@@ -347,11 +373,22 @@ describe("OntologyGraph", () => {
     expect(colors.other).toBe("#d1d5db");
   });
 
-  // --- Edge style (bezier only, no toggle) ---
+  // --- Edge style toggle ---
 
-  it("does not render an edge style toggle button", () => {
+  it("renders the edge style toggle button labelled for the alternate style", () => {
+    // Store default is smoothstep, so the affordance offers a switch to bezier.
     render(<OntologyGraph {...defaultProps} />);
-    expect(screen.queryByLabelText(/Switch to.*edges/)).toBeNull();
+    const toggle = screen.getByLabelText(/Switch to bezier edges/);
+    expect(toggle).toBeDefined();
+    expect(toggle.textContent).toMatch(/Smooth Step/);
+  });
+
+  it("flips the toggle label when clicked", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    const toggle = screen.getByLabelText(/Switch to bezier edges/);
+    fireEvent.click(toggle);
+    // After clicking, store is bezier — affordance now offers smooth step.
+    expect(screen.getByLabelText(/Switch to smooth step edges/)).toBeDefined();
   });
 });
 

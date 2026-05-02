@@ -17,8 +17,9 @@ import {
   type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { ArrowDown, ArrowRight, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowRight, ChevronDown, ChevronUp, RotateCcw, Spline, CornerDownRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEditorModeStore } from "@/lib/stores/editorModeStore";
 import { useGraphData } from "@/lib/hooks/useGraphData";
 import { useELKLayout, NODE_WIDTH, NODE_HEIGHT, type LayoutDirection } from "@/lib/graph/useELKLayout";
 import { OntologyNode } from "./OntologyNode";
@@ -159,6 +160,8 @@ function OntologyGraphInner({
 
   const [direction, setDirection] = useState<LayoutDirection>("TB");
   const toggleDirection = useCallback(() => setDirection((d) => (d === "TB" ? "LR" : "TB")), []);
+  const graphEdgeStyle = useEditorModeStore((s) => s.graphEdgeStyle);
+  const setGraphEdgeStyle = useEditorModeStore((s) => s.setGraphEdgeStyle);
   const {
     nodes: layoutNodes,
     edges: layoutEdges,
@@ -308,6 +311,18 @@ function OntologyGraphInner({
         >
           <RotateCcw className="h-3.5 w-3.5" />
           Reset
+        </button>
+        <button
+          onClick={() => setGraphEdgeStyle(graphEdgeStyle === "bezier" ? "smoothstep" : "bezier")}
+          className="flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
+          aria-label={`Switch to ${graphEdgeStyle === "bezier" ? "smooth step" : "bezier"} edges`}
+        >
+          {graphEdgeStyle === "bezier" ? (
+            <Spline className="h-3.5 w-3.5" />
+          ) : (
+            <CornerDownRight className="h-3.5 w-3.5" />
+          )}
+          {graphEdgeStyle === "bezier" ? "Bezier" : "Smooth Step"}
         </button>
         {isLayouting && (
           <span className="flex items-center gap-1 text-xs text-slate-400">
