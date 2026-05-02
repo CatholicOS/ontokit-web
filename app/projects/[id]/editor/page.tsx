@@ -702,8 +702,14 @@ export default function EditorPage() {
     }
     setActiveBranch(branchName);
     resetSourceState();
-    router.replace(`${pathname}?branch=${encodeURIComponent(branchName)}`);
-  }, [pathname, router, suggestionSession, resetSourceState]);
+    // Merge into existing search params instead of replacing — BranchSelector
+    // fires this on mount, and replacing would wipe ?classIri= / ?propertyIri=
+    // / ?individualIri= / ?resumeSession= that the page also depends on.
+    const next = new URLSearchParams(searchParamsString);
+    next.set("branch", branchName);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }, [pathname, router, suggestionSession, resetSourceState, searchParamsString]);
 
   // --- Keyboard shortcuts ---
   const keyboardShortcuts = useMemo((): ShortcutDefinition[] => [
