@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v0.4.0
 milestone_name: LLM-Assisted Ontology Improvements
 status: completed
-stopped_at: Phase 16 complete — human-verify approved for 16-04
-last_updated: "2026-04-08T15:38:02.879Z"
+stopped_at: Phase 17 context gathered
+last_updated: "2026-05-02T17:41:44.766Z"
 last_activity: 2026-04-08
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 9
   total_plans: 35
   completed_plans: 35
@@ -209,6 +209,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-08T15:27:40.844Z
-Stopped at: Phase 16 complete — human-verify approved for 16-04
-Resume file: None
+Last session: 2026-05-02T17:41:44.760Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-graph-as-entity-scoped-tab-in-detail-pane/17-CONTEXT.md
