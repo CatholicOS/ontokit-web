@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.4.0
 milestone_name: LLM-Assisted Ontology Improvements
 status: completed
-stopped_at: Phase 17 UI-SPEC approved
-last_updated: "2026-05-02T17:54:20.118Z"
+stopped_at: Phase 17 plans approved
+last_updated: "2026-05-02T18:49:51.167Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 11
   completed_phases: 9
-  total_plans: 35
+  total_plans: 38
   completed_plans: 35
-  percent: 100
+  percent: 92
 ---
 
 # Project State
@@ -209,6 +209,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-02T17:54:20.113Z
-Stopped at: Phase 17 UI-SPEC approved
-Resume file: .planning/phases/17-graph-as-entity-scoped-tab-in-detail-pane/17-UI-SPEC.md
+Last session: 2026-05-02T18:49:51.159Z
+Stopped at: Phase 17 plans approved
+Resume file: .planning/phases/17-graph-as-entity-scoped-tab-in-detail-pane/17-03-PLAN.md
