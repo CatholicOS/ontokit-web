@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch 004 — Open Full Source</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    body.with-variants { padding-top: 84px; }
+
+    /* === App chrome (same as 002/003) === */
+    .app {
+      display: grid;
+      grid-template-rows: var(--header-height) auto 1fr;
+      height: calc(100vh - 84px);
+      background: var(--bg-canvas);
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: var(--text-sm);
+    }
+    .app-brand { font-weight: 700; color: var(--text); font-size: 15px; }
+    .app-nav { display: flex; gap: 18px; color: var(--text-muted); }
+    .app-nav a:hover { color: var(--text); cursor: pointer; }
+    .spacer { flex: 1; }
+    .pill {
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      background: var(--bg-subtle);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+    .project-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .project-title { font-weight: 600; font-size: var(--text-sm); }
+    .seg {
+      display: inline-flex;
+      gap: 0;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      font-size: var(--text-xs);
+    }
+    .seg button { padding: 4px 10px; color: var(--text-muted); }
+    .seg button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 0.42fr 0.58fr;
+      overflow: hidden;
+    }
+    .left-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .right-panel {
+      background: var(--surface);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Left tree (same as 003) */
+    .left-tree-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+    }
+    .left-tree-tabs button {
+      padding: 8px 12px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+    }
+    .left-tree-tabs button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 500;
+    }
+    .left-toolbar {
+      display: flex;
+      gap: 6px;
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .left-toolbar button {
+      padding: 4px 8px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+    }
+    .left-toolbar button:hover { background: var(--bg-subtle); }
+    .left-list {
+      padding: 4px 8px;
+      font-size: var(--text-sm);
+      flex: 1;
+      overflow: auto;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .tree-item:hover { background: var(--bg-subtle); }
+    .tree-item.selected {
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .tree-toggle { width: 14px; color: var(--text-faint); font-family: monospace; }
+    .tree-pip { width: 10px; height: 10px; border-radius: 50%; background: var(--color-owl-class); flex-shrink: 0; }
+    .tree-children { padding-left: 18px; }
+
+    /* Right pane tabstrip (same as 003: 3 tabs at 33/33/33) */
+    .pane-tabstrip {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .pane-tabstrip button {
+      flex: 1 1 0;
+      padding: 8px 14px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-bottom: 2px solid transparent;
+    }
+    .pane-tabstrip svg { width: 12px; height: 12px; }
+    .pane-tabstrip button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--accent-bg);
+    }
+
+    .entity-header {
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .entity-pip {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--color-owl-class) 18%, transparent);
+      color: var(--color-owl-class);
+      font-weight: 700;
+      font-size: 11px;
+      border: 1px solid color-mix(in srgb, var(--color-owl-class) 35%, transparent);
+    }
+    .entity-name { font-size: var(--text-sm); font-weight: 600; color: var(--text); }
+    .entity-iri { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+
+    .pane-body { flex: 1; overflow: auto; }
+    .pane-body.source { padding: 0; display: flex; flex-direction: column; }
+
+    .source-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .source-toolbar .info { flex: 1; }
+    .source-toolbar button {
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .source-toolbar button.primary {
+      color: var(--accent);
+      border-color: var(--accent-border);
+      background: var(--accent-bg);
+      font-weight: 500;
+    }
+    .source-toolbar button:hover { color: var(--text); background: var(--bg-subtle); }
+
+    .source-view {
+      flex: 1;
+      background: #0f172a;
+      color: #cbd5e1;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      padding: 14px 16px;
+      overflow: auto;
+      white-space: pre;
+      tab-size: 2;
+      counter-reset: line;
+    }
+    .source-view.full { font-size: 13px; line-height: 1.65; padding: 16px 20px; }
+    .ttl-prefix { color: #818cf8; }
+    .ttl-iri { color: #38bdf8; }
+    .ttl-pred { color: #facc15; }
+    .ttl-string { color: #4ade80; }
+    .ttl-comment { color: #64748b; font-style: italic; }
+    .ttl-keyword { color: #f472b6; }
+    .ttl-line { display: block; }
+    .ttl-line::before {
+      counter-increment: line;
+      content: counter(line);
+      display: inline-block;
+      width: 3.2em;
+      margin-right: 1em;
+      color: #475569;
+      text-align: right;
+      user-select: none;
+    }
+    .ttl-line.highlighted {
+      background: rgba(14, 165, 233, 0.12);
+      box-shadow: inset 3px 0 0 var(--color-primary-400);
+    }
+    .ttl-line.highlighted::before { color: var(--color-primary-400); }
+
+    /* === MODAL (Variant A) === */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      width: min(1200px, 92vw);
+      height: min(820px, 90vh);
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalIn 0.18s ease;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(8px) scale(0.98); opacity: 0; }
+      to   { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .modal-header {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title { font-size: var(--text-base); font-weight: 600; flex: 1; display: flex; align-items: center; gap: 10px; }
+    .modal-title .secondary { color: var(--text-muted); font-weight: 400; margin-left: 6px; font-size: var(--text-sm); }
+    .modal-actions { display: flex; gap: 6px; }
+    .modal-actions button {
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+    }
+    .modal-actions button:hover { color: var(--text); background: var(--bg-subtle); }
+    .modal-close {
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+    }
+    .modal-close:hover { background: var(--bg-subtle); color: var(--text); }
+    .modal-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* === FULL TAKEOVER (Variant B) ===
+       Starts below the variant nav (28px) AND density banner (28px) so the
+       takeover header (with Back/Minimize/Find/Download buttons) is fully
+       visible. In production there is no density banner — top would be 56px. */
+    .full-takeover {
+      position: fixed;
+      top: 84px;
+      left: 0; right: 0; bottom: 0;
+      background: var(--surface);
+      z-index: 999;
+      display: none;
+      flex-direction: column;
+    }
+    .full-takeover.open { display: flex; }
+    .full-takeover-header {
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .full-takeover-header .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .full-takeover-header .back:hover { color: var(--text); background: var(--bg-subtle); }
+    .full-takeover-title { font-size: var(--text-base); font-weight: 600; flex: 1; display: flex; align-items: center; gap: 10px; }
+
+    /* === Variant C: paired Maximize / Minimize affordance ===
+       The maximize button (in the modal header) and the minimize button
+       (in the takeover header) form a round-trip chain. They share styling
+       so they read as the same control inverted. */
+    .modal-actions .maximize-btn,
+    .modal-actions .minimize-btn {
+      color: var(--accent);
+      border-color: var(--accent-border);
+      background: var(--accent-bg);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal-actions .maximize-btn:hover,
+    .modal-actions .minimize-btn:hover {
+      filter: brightness(1.05);
+    }
+
+    .density-banner {
+      position: fixed;
+      top: 56px;
+      left: 0; right: 0;
+      z-index: 9997;
+      padding: 6px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body class="with-variants">
+  <!-- Variant nav -->
+  <div class="variant-nav">
+    <span class="label">Sketch 004 — Open Full Source</span>
+    <button class="variant-tab" onclick="show('a')">A: Modal only</button>
+    <button class="variant-tab" onclick="show('b')">B: Full takeover (current)</button>
+    <button class="variant-tab active" onclick="show('c')">C: Modal ⇄ Maximize (round-trip) ★</button>
+  </div>
+
+  <section class="variant active">
+    <div class="density-banner" id="state-banner">Variant C ★ · Round-trip · <strong>↗ Open full source</strong> opens the modal. Inside the modal, <strong>⤢ Maximize</strong> promotes it to full takeover. Inside the takeover, <strong>⊟ Restore</strong> sends it back to modal (Windows-style Maximize ↔ Restore pair). Bounce freely between the two.</div>
+
+    <div class="app">
+      <header class="app-header">
+        <div class="app-brand">OntoKit</div>
+        <nav class="app-nav"><a>Projects</a><a>Info</a><a>Documentation</a><a>API Reference</a></nav>
+        <div class="spacer"></div>
+        <span class="pill">main · d484ded</span>
+        <span class="pill">Health</span>
+      </header>
+      <div class="project-bar">
+        <span class="project-title">Catholic Semantic Canon</span>
+        <span class="pill">14,973 classes</span>
+        <div class="spacer"></div>
+        <div class="seg"><button>Viewer</button><button class="active">Editor</button></div>
+        <div class="seg"><button>Standard</button><button class="active">Developer</button></div>
+      </div>
+      <div class="editor">
+        <aside class="left-panel">
+          <div class="left-tree-tabs">
+            <button class="active">Classes</button>
+            <button>Properties</button>
+            <button>Individuals</button>
+          </div>
+          <div class="left-toolbar">
+            <button>+ Add</button><button>Expand</button><button>Collapse</button>
+          </div>
+          <div class="left-list">
+            <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Actor</div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Deity</div>
+              <div class="tree-children">
+                <div class="tree-item selected"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Triune God</div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Father</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Holy Spirit</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Son</div>
+                </div>
+              </div>
+            </div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Authority</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Document / Artifact</div>
+          </div>
+        </aside>
+        <aside class="right-panel">
+          <div class="pane-tabstrip">
+            <button>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              Detail
+            </button>
+            <button>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+              Graph
+            </button>
+            <button class="active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Source
+            </button>
+          </div>
+          <div class="entity-header">
+            <div class="entity-pip">C</div>
+            <div style="flex:1;">
+              <div class="entity-name">Triune God</div>
+              <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+            </div>
+          </div>
+          <div class="pane-body source">
+            <div class="source-toolbar">
+              <span class="info">Entity-scoped Turtle · jumps to <strong>line 4,217</strong> in <code>ontology.ttl</code></span>
+              <button class="primary" onclick="openOverlay()">↗ Open full source</button>
+              <button>⎘ Copy snippet</button>
+            </div>
+            <div class="source-view"><span class="ttl-line"><span class="ttl-comment"># Triune God — entity-scoped definition</span></span><span class="ttl-line"></span><span class="ttl-line"><span class="ttl-iri">cos:R7xwsOkoji8EZRUrS511KGF</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;</span><span class="ttl-line">    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"Triune God"</span>@en ;</span><span class="ttl-line">    <span class="ttl-pred">skos:definition</span> <span class="ttl-string">"The Triune God refers to the one true God who exists eternally as three distinct divine Persons."</span>@en ;</span><span class="ttl-line">    <span class="ttl-pred">rdfs:subClassOf</span> <span class="ttl-iri">cos:Deity</span> .</span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ============== MODAL OVERLAY (used by Variant A and C) ============== -->
+    <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeOverlay()">
+      <div class="modal">
+        <div class="modal-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <div class="modal-title">
+            <span>ontology.ttl</span>
+            <span class="secondary">— full source · 14,973 classes · 87,420 lines</span>
+          </div>
+          <div class="modal-actions" id="modal-actions-host">
+            <button>⌕ Find</button>
+            <button>↧ Download</button>
+            <!-- Maximize button injected for Variant C -->
+          </div>
+          <button class="modal-close" onclick="closeOverlay()" title="Close (Esc)">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="source-toolbar">
+            <span class="info">Currently scrolled to <strong>Triune God</strong> · line 4,217 of 87,420</span>
+            <button>↩ Jump to entity start</button>
+            <button>↥ Top</button>
+          </div>
+          <div class="source-view full" id="full-source"><!-- Filled by JS so we can highlight the entity's lines --></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== FULL TAKEOVER (Variants B and C-maximized) ============== -->
+    <div class="full-takeover" id="full-takeover">
+      <div class="full-takeover-header">
+        <button class="back" onclick="closeOverlay()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to entity
+        </button>
+        <div class="full-takeover-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          ontology.ttl
+          <span style="color:var(--text-muted);font-weight:400;font-size:var(--text-sm);">— full source · 14,973 classes · 87,420 lines · scrolled to Triune God (line 4,217)</span>
+        </div>
+        <div class="modal-actions">
+          <button>⌕ Find</button>
+          <button>↧ Download</button>
+          <!-- Restore button only shown when takeover was reached via the modal's Maximize.
+               Returns to the modal view (preserving the round-trip chain).
+               Term choice: "Restore" matches Windows OS convention (Maximize ↔ Restore),
+               which is the strongest cross-platform muscle memory. "Minimize" was rejected
+               because in OS land it means send-to-taskbar, not return-to-previous-size. -->
+          <button id="takeover-minimize-btn" class="minimize-btn" onclick="minimizeToModal()" title="Restore to modal view" style="display:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            Restore
+          </button>
+        </div>
+      </div>
+      <div class="source-toolbar">
+        <span class="info">No editor chrome behind this view — tree and detail are hidden until you go back.</span>
+        <button>↩ Jump to entity start</button>
+      </div>
+      <div class="source-view full" id="full-takeover-source"></div>
+    </div>
+  </section>
+
+  <!-- Sketch toolbar -->
+  <div class="sketch-tools">
+    <span style="opacity:0.6">Theme</span>
+    <button onclick="toggleTheme()" id="theme-btn">☀ Light</button>
+  </div>
+
+  <script>
+    let CURRENT = 'c';
+    let CAME_FROM_MODAL = false; // tracks whether takeover was reached via modal Maximize
+
+    function show(which) {
+      CURRENT = which;
+      CAME_FROM_MODAL = false;
+      document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+      const tabs = document.querySelectorAll('.variant-tab');
+      const banners = {
+        a: 'Variant A · Modal · Click <strong>↗ Open full source</strong> to open the modal (~92% viewport, dim backdrop, Esc dismisses).',
+        b: 'Variant B · Full editor takeover · Click <strong>↗ Open full source</strong> to take over the entire editor canvas (tree + detail hidden). Click <strong>← Back to entity</strong> to dismiss.',
+        c: 'Variant C ★ · Round-trip · <strong>↗ Open full source</strong> opens the modal. Inside the modal, <strong>⤢ Maximize</strong> promotes it to full takeover. Inside the takeover, <strong>⊟ Restore</strong> sends it back to modal (Windows-style Maximize ↔ Restore pair). Bounce freely between the two.',
+      };
+      tabs[{a:0,b:1,c:2}[which]].classList.add('active');
+      document.getElementById('state-banner').innerHTML = banners[which];
+      closeOverlay();
+      setupActions();
+    }
+    function setupActions() {
+      const host = document.getElementById('modal-actions-host');
+      // Remove any existing maximize button
+      const existing = host.querySelector('.maximize-btn');
+      if (existing) existing.remove();
+      if (CURRENT === 'c') {
+        const btn = document.createElement('button');
+        btn.className = 'maximize-btn';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Maximize';
+        btn.title = 'Expand to full editor takeover';
+        btn.onclick = () => {
+          // Close modal but remember we came from it, then open takeover
+          document.getElementById('modal-overlay').classList.remove('open');
+          openTakeover(/*fromModal=*/true);
+        };
+        host.insertBefore(btn, host.firstChild);
+      }
+    }
+
+    function openOverlay() {
+      if (CURRENT === 'b') openTakeover(false);
+      else openModal();
+    }
+    function openModal() {
+      document.getElementById('modal-overlay').classList.add('open');
+      renderFullSource('full-source');
+    }
+    function openTakeover(fromModal) {
+      CAME_FROM_MODAL = !!fromModal;
+      document.getElementById('full-takeover').classList.add('open');
+      renderFullSource('full-takeover-source');
+      // Show the Minimize button only when we arrived via the modal's Maximize
+      const minBtn = document.getElementById('takeover-minimize-btn');
+      if (minBtn) minBtn.style.display = CAME_FROM_MODAL ? 'inline-flex' : 'none';
+    }
+    function minimizeToModal() {
+      // Close takeover, reopen modal — the round-trip back from full screen
+      document.getElementById('full-takeover').classList.remove('open');
+      openModal();
+      // Maximize button still wired in modal — user can bounce again
+    }
+    function closeOverlay() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      document.getElementById('full-takeover').classList.remove('open');
+      CAME_FROM_MODAL = false;
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next;
+      document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙 Dark' : '☀ Light';
+    }
+
+    /* Render a synthetic full-file Turtle excerpt with the entity's lines highlighted.
+       Demonstrates: (a) entity context preserved within full file; (b) line highlight
+       carries through whichever variant the user picks. */
+    function renderFullSource(targetId) {
+      const target = document.getElementById(targetId);
+      if (!target || target.dataset.rendered) return;
+      target.dataset.rendered = '1';
+      const lines = [
+        ['', 'comment', '# Catholic Semantic Canon — full ontology source'],
+        ['', 'comment', '# Generated 2026-05-02 from main@d484ded'],
+        ['', '', ''],
+        ['prefix', '', '<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">cos:</span>  &lt;<span class="ttl-iri">https://ontology.catholicos.catholic/</span>&gt; .'],
+        ['prefix', '', '<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">owl:</span>  &lt;<span class="ttl-iri">http://www.w3.org/2002/07/owl#</span>&gt; .'],
+        ['prefix', '', '<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">rdfs:</span> &lt;<span class="ttl-iri">http://www.w3.org/2000/01/rdf-schema#</span>&gt; .'],
+        ['prefix', '', '<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">skos:</span> &lt;<span class="ttl-iri">http://www.w3.org/2004/02/skos/core#</span>&gt; .'],
+        ['', '', ''],
+        ['', 'comment', '# ─────────────────────────────────────────────────────'],
+        ['', 'comment', '# Actor branch'],
+        ['', 'comment', '# ─────────────────────────────────────────────────────'],
+        ['', '', ''],
+        ['', '', '<span class="ttl-iri">cos:Actor</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"Actor"</span>@en ;'],
+        ['', '', '    <span class="ttl-pred">skos:definition</span> <span class="ttl-string">"A person, organization, or entity that participates in actions."</span>@en .'],
+        ['', '', ''],
+        ['', '', '<span class="ttl-iri">cos:Deity</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"Deity"</span>@en ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:subClassOf</span> <span class="ttl-iri">cos:Actor</span> .'],
+        ['', '', ''],
+        ['hi', 'comment', '# ── Triune God ──────────────────────────────────────'],
+        ['hi', '', '<span class="ttl-iri">cos:R7xwsOkoji8EZRUrS511KGF</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;'],
+        ['hi', '', '    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"Triune God"</span>@en ;'],
+        ['hi', '', '    <span class="ttl-pred">skos:definition</span> <span class="ttl-string">"The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit."</span>@en ;'],
+        ['hi', '', '    <span class="ttl-pred">skos:example</span>    <span class="ttl-string">"Catholic theology treats the Triune God as the central mystery of faith."</span>@en ;'],
+        ['hi', '', '    <span class="ttl-pred">rdfs:subClassOf</span> <span class="ttl-iri">cos:Deity</span> .'],
+        ['', '', ''],
+        ['', '', '<span class="ttl-iri">cos:GodTheFather</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"God the Father"</span>@en ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:subClassOf</span> <span class="ttl-iri">cos:R7xwsOkoji8EZRUrS511KGF</span> .'],
+        ['', '', ''],
+        ['', '', '<span class="ttl-iri">cos:GodTheSon</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"God the Son"</span>@en ;'],
+        ['', '', '    <span class="ttl-pred">rdfs:subClassOf</span> <span class="ttl-iri">cos:R7xwsOkoji8EZRUrS511KGF</span> .'],
+      ];
+      let html = '';
+      lines.forEach(([flag, kind, body]) => {
+        const cls = (flag === 'hi' ? ' highlighted' : '');
+        const inner = kind === 'comment' ? `<span class="ttl-comment">${body}</span>` : body;
+        html += `<span class="ttl-line${cls}">${inner}</span>`;
+      });
+      target.innerHTML = html;
+      // Scroll the highlighted block into view
+      setTimeout(() => {
+        const hi = target.querySelector('.ttl-line.highlighted');
+        if (hi) hi.scrollIntoView({ behavior: 'instant', block: 'center' });
+      }, 30);
+    }
+
+    // Initialize Variant C on load so the Maximize button is wired into the modal
+    // and the banner matches the active tab. Without this call, CURRENT was set
+    // to 'c' but setupActions() ran before show(), and the banner stayed stale.
+    show('c');
+  </script>
+</body>
+</html>

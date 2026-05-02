@@ -202,9 +202,26 @@ Plans:
 - [x] 16-04-PLAN.md — Integration: Review page wiring + visual verification
 **UI hint**: yes
 
+### Phase 17: Graph as Entity-Scoped Tab in Detail Pane
+**Milestone**: v0.5.0
+**Goal**: Move the entity graph from a peer-tab in Developer view (and a hidden icon button in Standard view) into a `Detail | Graph` tab strip at the top of the right-side detail pane, applied uniformly across both views and across all three entity types (class, property, individual). Property graphs render real domain/range/parent-property edges (an explicit improvement over WebProtege's empty-island treatment).
+**Depends on**: none (touches Standard and Developer layouts independently of other Phase 17+ work)
+**Requirements**: derived from `.planning/notes/graph-as-entity-pane.md` decisions 1-8; to be formalized via /gsd-spec-phase
+**Success Criteria** (what must be TRUE):
+  1. Both Standard and Developer views render a `Detail | Graph` tab strip at the top of the right-side detail pane for all three entity types (class, property, individual). The Developer view's `Tree | Source | Graph` peer-tab strip is reduced to `Tree | Source` — no separate graph view.
+  2. Single-click on a non-focus graph node re-centers the graph; double-click fully selects the entity (URL update, tree highlight, detail pane refresh). Pre-existing behavior preserved.
+  3. The active tab persists across selection changes (clicking a different entity in the tree, in search, or via double-click in the graph keeps the user on whichever tab they were on).
+  4. The default tab on first entity load in a new session is Detail; subsequent selections honor the user's last-active tab.
+  5. The in-pane graph has an "Expand" affordance that opens the existing `EntityGraphModal` (no new modal component).
+  6. Property graphs render domain classes, range classes, parent/child properties, and see-also as actual nodes/edges — not a single isolated focus node. Annotation properties render an empty-state message when they have no domain/range/see-also.
+  7. The Standard view's prior small "Graph" icon button in the detail panel is removed; the new tab strip is its only graph entry point in that view.
+**Plans**: TBD (4-6 plans expected: data-layer changes for property/individual graph endpoints, tab-strip component, Standard view integration, Developer view integration, modal-expand wiring, visual verification)
+**UI hint**: yes
+**Refs**: `.planning/notes/graph-as-entity-pane.md` (decision capture)
+
 ## Progress
 
-**Execution Order:** 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
+**Execution Order:** 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
