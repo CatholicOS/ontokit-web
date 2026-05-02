@@ -86,6 +86,30 @@ describe("useProjectHomeHref", () => {
     expect(result.current).toBe("/projects/proj-1");
   });
 
+  it("routes back to the editor when the store records mode='editor', even with preferEditMode off", () => {
+    // Regression: preferEditMode false used to force viewer-routing, so a user
+    // who switched to the editor mid-session via the switcher would lose the
+    // mode on Back-to-project.
+    useEditorModeStore.setState({ preferEditMode: false });
+    useSelectionStore.getState().setMode("editor");
+    const { result } = renderHook(() => useProjectHomeHref("proj-1"));
+    expect(result.current).toBe("/projects/proj-1/editor");
+  });
+
+  it("routes back to the viewer when the store records mode='viewer', even with preferEditMode on", () => {
+    useEditorModeStore.setState({ preferEditMode: true });
+    useSelectionStore.getState().setMode("viewer");
+    const { result } = renderHook(() => useProjectHomeHref("proj-1"));
+    expect(result.current).toBe("/projects/proj-1");
+  });
+
+  it("permission-gates editor routing even when the store says mode='editor'", () => {
+    useSelectionStore.getState().setMode("editor");
+    mockDerivePermissions.mockReturnValue({ canSuggest: false });
+    const { result } = renderHook(() => useProjectHomeHref("proj-1"));
+    expect(result.current).toBe("/projects/proj-1");
+  });
+
   it("appends a class IRI selection from the store", () => {
     useSelectionStore.getState().setSelection("http://example.org/Person", "class");
     const { result } = renderHook(() => useProjectHomeHref("proj-1"));

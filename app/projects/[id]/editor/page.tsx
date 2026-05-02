@@ -23,6 +23,7 @@ import { BranchProvider, branchQueryKeys } from "@/lib/context/BranchContext";
 import { useProjectViewer } from "@/lib/hooks/useProjectViewer";
 import { ConnectionStatus } from "@/components/ui/ConnectionStatus";
 import { useEditorModeStore } from "@/lib/stores/editorModeStore";
+import { useSelectionStore } from "@/lib/stores/selectionStore";
 import { revisionsApi } from "@/lib/api/revisions";
 import { projectOntologyApi, type ClassUpdatePayload } from "@/lib/api/client";
 import { getLocalName } from "@/lib/utils";
@@ -70,6 +71,14 @@ export default function EditorPage() {
     || undefined;
 
   const editorMode = useEditorModeStore((s) => s.editorMode);
+
+  // Mark this surface as the user's most recent project view so side-page
+  // Back-to-project links route them back to the editor — regardless of
+  // whether their global preferEditMode preference says viewer or editor.
+  const setProjectViewMode = useSelectionStore((s) => s.setMode);
+  useEffect(() => {
+    setProjectViewMode("editor");
+  }, [setProjectViewMode]);
 
   // Branch state
   const queryClient = useQueryClient();
