@@ -114,12 +114,6 @@ export default function EditorPage() {
   const collaboration = useCollaborationStatus({ projectId });
   const [lintWsStatus, setLintWsStatus] = useState<ConnectionState>("disconnected");
 
-  // Restore selected class from URL query param once tree is ready
-  useEffect(() => {
-    if (!classIriParam || isTreeLoading || !nodes.length) return;
-    if (selectedIri === classIriParam) return;
-    navigateToNode(classIriParam);
-  }, [classIriParam, isTreeLoading, nodes.length, selectedIri, navigateToNode]);
   // UI state (editor-only)
   const [showHistory, setShowHistory] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
