@@ -42,7 +42,7 @@
     "react-dom": "^19.2.5",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.4.3",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.13"
   },
   "overrides": {
     "dompurify": "^3.3.2",
