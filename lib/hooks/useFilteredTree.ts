@@ -11,6 +11,7 @@ interface UseFilteredTreeOptions {
   projectId: string;
   accessToken?: string;
   branch?: string;
+  searchQuery?: string;
 }
 
 interface UseFilteredTreeReturn {
@@ -29,6 +30,7 @@ export function useFilteredTree({
   projectId,
   accessToken,
   branch,
+  searchQuery,
 }: UseFilteredTreeOptions): UseFilteredTreeReturn {
   const [filteredNodes, setFilteredNodes] = useState<EntityTreeNode[] | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
@@ -92,7 +94,7 @@ export function useFilteredTree({
         if (buildId !== buildIdRef.current) return;
 
         // Merge all ancestor paths into a unified tree
-        const tree = mergePathsIntoTree(ancestorPaths);
+        const tree = mergePathsIntoTree(ancestorPaths, searchQuery ?? "");
 
         setFilteredNodes(tree);
         setFirstMatchIri(limitedResults[0]?.iri ?? null);
@@ -121,8 +123,11 @@ export interface AncestorPath {
 /**
  * Merge multiple ancestor paths into a unified EntityTreeNode tree.
  * Matched nodes get `isSearchMatch: true`, all ancestors are `isExpanded: true`.
+ * If `query` is provided, any node whose label contains the query (case-insensitive)
+ * is also marked as a match — not just the leaf IRIs the backend returned.
  */
-export function mergePathsIntoTree(paths: AncestorPath[]): EntityTreeNode[] {
+export function mergePathsIntoTree(paths: AncestorPath[], query = ""): EntityTreeNode[] {
+  const q = query.trim().toLowerCase();
   // nodeMap: iri -> EntityTreeNode
   const nodeMap = new Map<string, EntityTreeNode>();
   // childrenMap: parentIri -> Set<childIri>
@@ -143,6 +148,7 @@ export function mergePathsIntoTree(paths: AncestorPath[]): EntityTreeNode[] {
 
     for (let i = 0; i < fullPath.length; i++) {
       const item = fullPath[i];
+      const labelMatches = q.length > 0 && item.label.toLowerCase().includes(q);
 
       if (!nodeMap.has(item.iri)) {
         nodeMap.set(item.iri, {
@@ -153,12 +159,12 @@ export function mergePathsIntoTree(paths: AncestorPath[]): EntityTreeNode[] {
           isLoading: false,
           hasChildren: item.hasChildren,
           entityType: "class",
-          isSearchMatch: matchIris.has(item.iri),
+          isSearchMatch: matchIris.has(item.iri) || labelMatches,
         });
       } else {
         const existing = nodeMap.get(item.iri)!;
         existing.hasChildren = existing.hasChildren || item.hasChildren;
-        if (matchIris.has(item.iri)) {
+        if (matchIris.has(item.iri) || labelMatches) {
           existing.isSearchMatch = true;
         }
       }
