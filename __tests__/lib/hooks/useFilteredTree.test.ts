@@ -188,6 +188,72 @@ describe("mergePathsIntoTree", () => {
     expect(tree).toHaveLength(0);
   });
 
+  it("highlights an ancestor whose label matches the query, even though it is not a backend result", () => {
+    const paths: AncestorPath[] = [
+      {
+        matchIri: "urn:leaf",
+        matchLabel: "Document Collection Event",
+        ancestors: [
+          { iri: "urn:root", label: "Event", child_count: 1 },
+          { iri: "urn:ancestor", label: "Document Collection and Production Events", child_count: 1 },
+        ],
+      },
+    ];
+
+    const tree = mergePathsIntoTree(paths, "document");
+
+    // Root ("Event") does not match
+    expect(tree[0].isSearchMatch).toBeFalsy();
+    // Ancestor ("Document Collection and Production Events") matches the query
+    expect(tree[0].children[0].isSearchMatch).toBe(true);
+    // Leaf ("Document Collection Event") is a backend match AND label matches
+    expect(tree[0].children[0].children[0].isSearchMatch).toBe(true);
+  });
+
+  it("is case-insensitive when matching ancestor labels against the query", () => {
+    const paths: AncestorPath[] = [
+      {
+        matchIri: "urn:leaf",
+        matchLabel: "Leaf",
+        ancestors: [{ iri: "urn:ancestor", label: "Document Archive", child_count: 1 }],
+      },
+    ];
+
+    const tree = mergePathsIntoTree(paths, "DOCUMENT");
+
+    expect(tree[0].isSearchMatch).toBe(true);
+  });
+
+  it("does not highlight ancestors when query is empty", () => {
+    const paths: AncestorPath[] = [
+      {
+        matchIri: "urn:leaf",
+        matchLabel: "Leaf",
+        ancestors: [{ iri: "urn:ancestor", label: "Some Ancestor", child_count: 1 }],
+      },
+    ];
+
+    const tree = mergePathsIntoTree(paths, "");
+
+    expect(tree[0].isSearchMatch).toBeFalsy();
+    expect(tree[0].children[0].isSearchMatch).toBe(true);
+  });
+
+  it("does not highlight ancestors whose labels do not contain the query", () => {
+    const paths: AncestorPath[] = [
+      {
+        matchIri: "urn:leaf",
+        matchLabel: "Document Event",
+        ancestors: [{ iri: "urn:ancestor", label: "Unrelated Category", child_count: 1 }],
+      },
+    ];
+
+    const tree = mergePathsIntoTree(paths, "document");
+
+    expect(tree[0].isSearchMatch).toBeFalsy();
+    expect(tree[0].children[0].isSearchMatch).toBe(true);
+  });
+
   it("assigns entityType 'class' to all nodes", () => {
     const paths: AncestorPath[] = [
       {
