@@ -167,7 +167,7 @@ export function BranchSelector({
           />
 
           {/* Menu */}
-          <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+          <div className="absolute right-0 top-full z-50 mt-1 w-max min-w-64 max-w-[32rem] rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
             {/* Error message */}
             {error && (
               <div className="flex items-center gap-2 border-b border-slate-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-slate-700 dark:bg-red-900/20 dark:text-red-400">
