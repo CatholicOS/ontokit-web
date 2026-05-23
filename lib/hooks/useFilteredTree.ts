@@ -109,7 +109,7 @@ export function useFilteredTree({
         }
       }
     })();
-  }, [searchResults, projectId, accessToken, branch]);
+  }, [searchResults, searchQuery, projectId, accessToken, branch]);
 
   return { filteredNodes, isBuilding, firstMatchIri, truncated };
 }
