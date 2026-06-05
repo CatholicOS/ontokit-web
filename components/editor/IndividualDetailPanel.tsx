@@ -25,7 +25,8 @@ import { AnnotationRow } from "@/components/editor/standard/AnnotationRow";
 import { InlineAnnotationAdder } from "@/components/editor/standard/InlineAnnotationAdder";
 import { RelationshipSection, type RelationshipGroup, type RelationshipTarget } from "@/components/editor/standard/RelationshipSection";
 import { PropertyAssertionSection } from "@/components/editor/standard/PropertyAssertionSection";
-import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, SEE_ALSO_IRI, getAnnotationPropertyInfo } from "@/lib/ontology/annotationProperties";
+import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, SEE_ALSO_IRI, getAnnotationPropertyInfo, getAnnotationCardinality } from "@/lib/ontology/annotationProperties";
+import { ensureTrailingPlaceholder } from "@/lib/ontology/annotationCardinality";
 import { AutoSaveAffordanceBar } from "@/components/editor/AutoSaveAffordanceBar";
 import { useEntityAutoSave } from "@/lib/hooks/useEntityAutoSave";
 import { useToast } from "@/lib/context/ToastContext";
@@ -37,12 +38,6 @@ import {
 import { type IndividualDraftEntry } from "@/lib/stores/draftStore";
 import { useIriLabels } from "@/lib/hooks/useIriLabels";
 
-function ensureTrailingEmpty(arr: LocalizedString[]): LocalizedString[] {
-  if (arr.length === 0 || arr[arr.length - 1].value.trim() !== "") {
-    return [...arr, { value: "", lang: "en" }];
-  }
-  return arr;
-}
 
 interface IndividualDetailPanelProps {
   projectId: string;
@@ -198,9 +193,9 @@ export function IndividualDetailPanel({
   });
 
   const initEditState = useCallback((d: ParsedIndividualDetail) => {
-    setEditLabels(ensureTrailingEmpty(d.labels.map((l) => ({ ...l }))));
-    setEditComments(ensureTrailingEmpty(d.comments.map((c) => ({ ...c }))));
-    setEditDefinitions(ensureTrailingEmpty(d.definitions.map((def) => ({ ...def }))));
+    setEditLabels(ensureTrailingPlaceholder(d.labels.map((l) => ({ ...l })), "single-per-lang"));
+    setEditComments(ensureTrailingPlaceholder(d.comments.map((c) => ({ ...c })), "multiple"));
+    setEditDefinitions(ensureTrailingPlaceholder(d.definitions.map((def) => ({ ...def })), "single-per-lang"));
     setEditTypeIris([...d.typeIris]);
     setEditSameAsIris([...d.sameAsIris]);
     setEditDifferentFromIris([...d.differentFromIris]);
@@ -229,7 +224,7 @@ export function IndividualDetailPanel({
 
     const regularAnnotations = d.annotations
       .filter((a) => a.property_iri !== DEFINITION_IRI)
-      .map((a) => ({ ...a, values: ensureTrailingEmpty(a.values.map((v) => ({ ...v }))) }));
+      .map((a) => ({ ...a, values: ensureTrailingPlaceholder(a.values.map((v) => ({ ...v })), getAnnotationCardinality(a.property_iri)) }));
     setEditAnnotations(regularAnnotations);
   }, []);
 
@@ -283,8 +278,8 @@ export function IndividualDetailPanel({
       const d = restoredDraft as IndividualDraftEntry;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring draft state from store; matches PropertyDetailPanel auto-enter pattern
       setEditLabels(d.labels);
-      setEditComments(ensureTrailingEmpty(d.comments));
-      setEditDefinitions(ensureTrailingEmpty(d.definitions));
+      setEditComments(ensureTrailingPlaceholder(d.comments, "multiple"));
+      setEditDefinitions(ensureTrailingPlaceholder(d.definitions, "single-per-lang"));
       setEditTypeIris(d.typeIris);
       setEditSameAsIris(d.sameAsIris);
       setEditDifferentFromIris(d.differentFromIris);
@@ -303,7 +298,7 @@ export function IndividualDetailPanel({
 
   // ── Edit helpers ──
   const updateLabel = useCallback((index: number, field: "value" | "lang", val: string) => {
-    setEditLabels((prev) => ensureTrailingEmpty(prev.map((l, i) => (i === index ? { ...l, [field]: val } : l))));
+    setEditLabels((prev) => ensureTrailingPlaceholder(prev.map((l, i) => (i === index ? { ...l, [field]: val } : l)), "single-per-lang"));
   }, []);
   const removeLabel = useCallback((index: number) => {
     setEditLabels((prev) => prev.filter((_, i) => i !== index));
@@ -311,18 +306,18 @@ export function IndividualDetailPanel({
   }, [triggerSave]);
 
   const updateComment = useCallback((index: number, field: "value" | "lang", val: string) => {
-    setEditComments((prev) => ensureTrailingEmpty(prev.map((c, i) => (i === index ? { ...c, [field]: val } : c))));
+    setEditComments((prev) => ensureTrailingPlaceholder(prev.map((c, i) => (i === index ? { ...c, [field]: val } : c)), "multiple"));
   }, []);
   const removeComment = useCallback((index: number) => {
-    setEditComments((prev) => ensureTrailingEmpty(prev.filter((_, i) => i !== index)));
+    setEditComments((prev) => ensureTrailingPlaceholder(prev.filter((_, i) => i !== index), "multiple"));
     requestAnimationFrame(() => triggerSave());
   }, [triggerSave]);
 
   const updateDefinition = useCallback((index: number, field: "value" | "lang", val: string) => {
-    setEditDefinitions((prev) => ensureTrailingEmpty(prev.map((d, i) => (i === index ? { ...d, [field]: val } : d))));
+    setEditDefinitions((prev) => ensureTrailingPlaceholder(prev.map((d, i) => (i === index ? { ...d, [field]: val } : d)), "single-per-lang"));
   }, []);
   const removeDefinition = useCallback((index: number) => {
-    setEditDefinitions((prev) => ensureTrailingEmpty(prev.filter((_, i) => i !== index)));
+    setEditDefinitions((prev) => ensureTrailingPlaceholder(prev.filter((_, i) => i !== index), "single-per-lang"));
     requestAnimationFrame(() => triggerSave());
   }, [triggerSave]);
 
@@ -332,7 +327,7 @@ export function IndividualDetailPanel({
         prev.map((a) => {
           if (a.property_iri !== propertyIri) return a;
           const updated = a.values.map((v, vi) => (vi === valueIdx ? { ...v, [field]: val } : v));
-          return { ...a, values: ensureTrailingEmpty(updated) };
+          return { ...a, values: ensureTrailingPlaceholder(updated, getAnnotationCardinality(propertyIri)) };
         })
       );
     }, []
@@ -342,7 +337,7 @@ export function IndividualDetailPanel({
       setEditAnnotations((prev) =>
         prev.map((a) => {
           if (a.property_iri !== propertyIri) return a;
-          return { ...a, values: ensureTrailingEmpty(a.values.filter((_, vi) => vi !== valueIdx)) };
+          return { ...a, values: ensureTrailingPlaceholder(a.values.filter((_, vi) => vi !== valueIdx), getAnnotationCardinality(propertyIri)) };
         })
       );
       requestAnimationFrame(() => triggerSave());
