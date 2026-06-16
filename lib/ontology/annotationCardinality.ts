@@ -31,9 +31,17 @@ export function ensureTrailingPlaceholder(
       // covered by a filled value. This prevents offering a duplicate @en row
       // when the annotation already has an English value (SKOS S14 / rdfs:label
       // convention). If all common languages are already present, no placeholder.
-      const filledLangs = new Set(values.filter((v) => v.value.trim()).map((v) => v.lang));
+      const filledLangs = new Set(
+        values
+          .filter((v) => v.value.trim() !== "")
+          .map((v) => v.lang.trim().toLowerCase())
+          .filter(Boolean),
+      );
       const nextLang = COMMON_LANGS.find((l) => !filledLangs.has(l));
-      if (nextLang === undefined) return values;
+      if (nextLang === undefined) {
+        // All common languages are filled — add a blank row for a custom locale.
+        return [...values, { value: "", lang: "" }];
+      }
       return [...values, { value: "", lang: nextLang }];
     }
 

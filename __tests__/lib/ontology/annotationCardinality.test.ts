@@ -52,7 +52,7 @@ describe('ensureTrailingPlaceholder — "single-per-lang"', () => {
     expect(ensureTrailingPlaceholder(input, "single-per-lang")).toStrictEqual(input);
   });
 
-  it("adds no placeholder when all common languages are already filled", () => {
+  it("adds a blank-lang placeholder when all common languages are already filled", () => {
     const input = [
       { value: "A", lang: "en" },
       { value: "B", lang: "pt" },
@@ -61,7 +61,9 @@ describe('ensureTrailingPlaceholder — "single-per-lang"', () => {
       { value: "E", lang: "de" },
       { value: "F", lang: "it" },
     ];
-    expect(ensureTrailingPlaceholder(input, "single-per-lang")).toStrictEqual(input);
+    const result = ensureTrailingPlaceholder(input, "single-per-lang");
+    expect(result).toHaveLength(7);
+    expect(result[6]).toEqual({ value: "", lang: "" });
   });
 
   it("skips covered languages and finds the next available one", () => {
