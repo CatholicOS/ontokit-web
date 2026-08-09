@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch 003 — Developer View + Modal Expand</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    body.with-variants { padding-top: 84px; }
+
+    /* === App chrome === */
+    .app {
+      display: grid;
+      grid-template-rows: var(--header-height) auto 1fr;
+      height: calc(100vh - 84px);
+      background: var(--bg-canvas);
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: var(--text-sm);
+    }
+    .app-brand { font-weight: 700; color: var(--text); font-size: 15px; }
+    .app-nav { display: flex; gap: 18px; color: var(--text-muted); }
+    .app-nav a:hover { color: var(--text); cursor: pointer; }
+    .spacer { flex: 1; }
+    .pill {
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      background: var(--bg-subtle);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+
+    .project-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .project-title { font-weight: 600; font-size: var(--text-sm); }
+    .seg {
+      display: inline-flex;
+      gap: 0;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      font-size: var(--text-xs);
+    }
+    .seg button { padding: 4px 10px; color: var(--text-muted); }
+    .seg button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+
+    /* === Editor body — Developer view: 2 panes ===
+       LEFT: tree only (Classes | Properties | Individuals) — no Tree/Source mode strip
+       RIGHT: Detail | Graph | Source (Source tab is Developer-only) */
+    .editor {
+      display: grid;
+      grid-template-columns: 0.42fr 0.58fr;
+      overflow: hidden;
+    }
+    .left-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .right-panel {
+      background: var(--surface);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* === LEFT pane: the tree === */
+    .left-tree-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+    }
+    .left-tree-tabs button {
+      padding: 8px 12px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+    }
+    .left-tree-tabs button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 500;
+    }
+    .left-toolbar {
+      display: flex;
+      gap: 6px;
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .left-toolbar button {
+      padding: 4px 8px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+    }
+    .left-toolbar button:hover { background: var(--bg-subtle); }
+    .left-list {
+      padding: 4px 8px;
+      font-size: var(--text-sm);
+      flex: 1;
+      overflow: auto;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .tree-item:hover { background: var(--bg-subtle); }
+    .tree-item.selected {
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .tree-toggle { width: 14px; color: var(--text-faint); font-family: monospace; }
+    .tree-pip { width: 10px; height: 10px; border-radius: 50%; background: var(--color-owl-class); flex-shrink: 0; }
+    .tree-children { padding-left: 18px; }
+
+    /* === RIGHT pane: 3-tab strip (Detail | Graph | Source), 33/33/33 === */
+    .pane-tabstrip {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .pane-tabstrip button {
+      flex: 1 1 0;
+      padding: 8px 14px;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .pane-tabstrip svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .pane-tabstrip button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--accent-bg);
+    }
+    .pane-tabstrip button:hover:not(.active) {
+      color: var(--text);
+      background: var(--bg-subtle);
+    }
+
+    .entity-header {
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .entity-pip {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--color-owl-class) 18%, transparent);
+      color: var(--color-owl-class);
+      font-weight: 700;
+      font-size: 11px;
+      border: 1px solid color-mix(in srgb, var(--color-owl-class) 35%, transparent);
+    }
+    .entity-name {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .entity-iri {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .entity-actions { display: flex; gap: 6px; align-items: center; }
+    .entity-actions button {
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+    }
+    .entity-actions button:hover { color: var(--text); background: var(--bg-subtle); }
+
+    .pane-body {
+      flex: 1;
+      overflow: auto;
+      padding: 14px 18px;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      margin-bottom: 10px;
+      align-items: start;
+    }
+    .field-label {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-top: 6px;
+    }
+    .field-value {
+      color: var(--text);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 6px 10px;
+      font-size: var(--text-sm);
+      min-height: 28px;
+      line-height: 1.45;
+    }
+    .field-value.parent { display: inline-flex; align-items: center; gap: 8px; }
+    .field-value.parent .pip {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--color-owl-class) 18%, transparent);
+      color: var(--color-owl-class);
+      font-size: 11px;
+      font-weight: 700;
+      display: grid; place-items: center;
+    }
+
+    /* Graph (right pane, Developer view) */
+    .pane-body.graph { padding: 0; position: relative; flex: 1; }
+    .graph-canvas {
+      flex: 1;
+      background: var(--bg-canvas);
+      position: relative;
+      overflow: hidden;
+    }
+    .graph-toolbar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 6px;
+      z-index: 5;
+    }
+    .graph-toolbar button {
+      padding: 4px 9px;
+      font-size: 11px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
+    }
+    .graph-toolbar button:hover { color: var(--text); }
+    .expand-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 10px;
+      z-index: 5;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .expand-btn:hover { color: var(--accent); border-color: var(--accent-border); }
+    .graph-counter {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 10px;
+      color: var(--text-faint);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      z-index: 5;
+    }
+    .graph-node {
+      position: absolute;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1.5px solid;
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .graph-node:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .graph-node.focus {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border-color: var(--accent-border);
+      font-weight: 600;
+    }
+    .graph-node.parent {
+      background: color-mix(in srgb, var(--color-owl-class) 14%, var(--surface));
+      color: var(--text);
+      border-color: color-mix(in srgb, var(--color-owl-class) 40%, transparent);
+    }
+    .graph-node.child {
+      background: color-mix(in srgb, var(--color-owl-class) 8%, var(--surface));
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .graph-node.sibling {
+      background: var(--surface);
+      color: var(--text-muted);
+      border-color: var(--border);
+      border-style: dashed;
+    }
+    .graph-edge {
+      position: absolute;
+      background: var(--border-strong);
+      transform-origin: left center;
+      height: 1.5px;
+      pointer-events: none;
+    }
+    .graph-arrow::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -3px;
+      width: 0; height: 0;
+      border-left: 7px solid var(--border-strong);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+
+    /* Source (right pane, Developer view) — entity-scoped Turtle snippet */
+    .pane-body.source { padding: 0; position: relative; flex: 1; display: flex; flex-direction: column; }
+    .source-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .source-toolbar .info {
+      flex: 1;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .source-toolbar button {
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .source-toolbar button:hover { color: var(--text); background: var(--bg-subtle); }
+    .source-view {
+      flex: 1;
+      background: #0f172a;
+      color: #cbd5e1;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      padding: 14px 16px;
+      overflow: auto;
+      white-space: pre;
+      tab-size: 2;
+    }
+    .ttl-prefix { color: #818cf8; }
+    .ttl-iri { color: #38bdf8; }
+    .ttl-pred { color: #facc15; }
+    .ttl-string { color: #4ade80; }
+    .ttl-comment { color: #64748b; font-style: italic; }
+    .ttl-keyword { color: #f472b6; }
+
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      width: min(1200px, 92vw);
+      height: min(800px, 88vh);
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalIn 0.18s ease;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(8px) scale(0.98); opacity: 0; }
+      to   { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .modal-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .modal-title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      flex: 1;
+    }
+    .modal-title .secondary {
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 8px;
+      font-size: var(--text-sm);
+    }
+    .modal-close {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+    }
+    .modal-close:hover { background: var(--bg-subtle); color: var(--text); }
+    .modal-body {
+      flex: 1;
+      position: relative;
+      background: var(--bg-canvas);
+    }
+
+    .density-banner {
+      position: fixed;
+      top: 56px;
+      left: 0; right: 0;
+      z-index: 9997;
+      padding: 6px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body class="with-variants">
+  <!-- Variant nav (state cycler) -->
+  <div class="variant-nav">
+    <span class="label">Sketch 003 — developer view + modal expand</span>
+    <button class="variant-tab active" onclick="showState('detail')">A: Detail</button>
+    <button class="variant-tab" onclick="showState('graph')">B: Graph</button>
+    <button class="variant-tab" onclick="showState('source')">C: Source (Dev only)</button>
+    <button class="variant-tab" onclick="showState('modal')">D: Modal expanded</button>
+  </div>
+
+  <section class="variant active">
+    <div class="density-banner" id="state-banner">State A · Detail tab active in the right pane · Left pane has only the tree (no Tree/Source mode strip). Click <strong>Graph</strong> or <strong>Source</strong> in the right pane to swap.</div>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-brand">OntoKit</div>
+        <nav class="app-nav"><a>Projects</a><a>Info</a><a>Documentation</a><a>API Reference</a></nav>
+        <div class="spacer"></div>
+        <span class="pill">main · d484ded</span>
+        <span class="pill">Health</span>
+      </header>
+      <div class="project-bar">
+        <span class="project-title">Catholic Semantic Canon</span>
+        <span class="pill">14,973 classes</span>
+        <div class="spacer"></div>
+        <div class="seg"><button>Viewer</button><button class="active">Editor</button></div>
+        <div class="seg"><button>Standard</button><button class="active">Developer</button></div>
+      </div>
+      <div class="editor">
+        <!-- LEFT pane: just the tree (no mode strip; no Tree/Source toggle) -->
+        <aside class="left-panel">
+          <div class="left-tree-tabs">
+            <button class="active">Classes</button>
+            <button>Properties</button>
+            <button>Individuals</button>
+          </div>
+          <div class="left-toolbar">
+            <button>+ Add</button><button>Expand</button><button>Collapse</button>
+            <div class="spacer"></div>
+            <button>⌕</button>
+          </div>
+          <div class="left-list">
+            <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Actor</div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Deity</div>
+              <div class="tree-children">
+                <div class="tree-item selected"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Triune God</div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Father</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Holy Spirit</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Son</div>
+                </div>
+              </div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Human Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Organizational Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Role</div>
+            </div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Authority</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Document / Artifact</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Event</div>
+          </div>
+        </aside>
+
+        <!-- RIGHT pane: 3-tab strip (Detail | Graph | Source) — Source visible in Developer only -->
+        <aside class="right-panel">
+          <div class="pane-tabstrip">
+            <button id="tab-detail" class="active" onclick="paneSwap('detail')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              Detail
+            </button>
+            <button id="tab-graph" onclick="paneSwap('graph')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+              Graph
+            </button>
+            <button id="tab-source" onclick="paneSwap('source')" title="Source — Developer view only">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Source
+            </button>
+          </div>
+          <div class="entity-header">
+            <div class="entity-pip">C</div>
+            <div style="flex:1;">
+              <div class="entity-name">Triune God</div>
+              <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+            </div>
+            <div class="entity-actions">
+              <button>⎘ Copy IRI</button>
+              <!-- The old "</> Source" link is replaced by the Source TAB above. -->
+            </div>
+          </div>
+          <div class="pane-body" id="body-detail">
+            <div class="field-row"><div class="field-label">Label</div><div class="field-value">Triune God</div></div>
+            <div class="field-row"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit. Each Person fully possesses the one divine essence.</div></div>
+            <div class="field-row"><div class="field-label">Comment(s)</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">Add another Comment</div></div>
+            <div class="field-row"><div class="field-label">Example(s)</div><div class="field-value">Catholic theology treats the Triune God as the central mystery of faith.</div></div>
+            <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value parent"><span class="pip">C</span>Deity</div></div>
+            <div class="field-row"><div class="field-label">Statistics</div><div class="field-value">3 subclasses · — instances</div></div>
+          </div>
+          <div class="pane-body graph" id="body-graph" style="display:none;">
+            <div class="graph-canvas" id="canvas-pane"></div>
+          </div>
+          <div class="pane-body source" id="body-source" style="display:none;">
+            <div class="source-toolbar">
+              <span class="info">Entity-scoped Turtle · jumps to line in <code>ontology.ttl</code></span>
+              <button>↗ Open full source</button>
+              <button>⎘ Copy snippet</button>
+            </div>
+            <div class="source-view"><span class="ttl-comment"># Triune God — entity-scoped definition</span>
+<span class="ttl-comment"># File: ontology.ttl, line 4,217</span>
+
+<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">cos:</span>  &lt;<span class="ttl-iri">https://ontology.catholicos.catholic/</span>&gt; .
+<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">owl:</span>  &lt;<span class="ttl-iri">http://www.w3.org/2002/07/owl#</span>&gt; .
+<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">rdfs:</span> &lt;<span class="ttl-iri">http://www.w3.org/2000/01/rdf-schema#</span>&gt; .
+<span class="ttl-prefix">@prefix</span> <span class="ttl-iri">skos:</span> &lt;<span class="ttl-iri">http://www.w3.org/2004/02/skos/core#</span>&gt; .
+
+<span class="ttl-iri">cos:R7xwsOkoji8EZRUrS511KGF</span> <span class="ttl-keyword">a</span> <span class="ttl-iri">owl:Class</span> ;
+    <span class="ttl-pred">rdfs:label</span>      <span class="ttl-string">"Triune God"</span>@en ;
+    <span class="ttl-pred">skos:definition</span> <span class="ttl-string">"The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit. Each Person fully possesses the one divine essence."</span>@en ;
+    <span class="ttl-pred">skos:example</span>    <span class="ttl-string">"Catholic theology treats the Triune God as the central mystery of faith."</span>@en ;
+    <span class="ttl-pred">rdfs:subClassOf</span> <span class="ttl-iri">cos:Deity</span> .
+</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== MODAL (State D) ============== -->
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="entity-pip">C</div>
+        <div class="modal-title">
+          Triune God
+          <span class="secondary">— Entity Graph</span>
+        </div>
+        <div class="entity-actions">
+          <button>↕ Direction</button>
+          <button>Descendants</button>
+          <button>⤴ Reset</button>
+        </div>
+        <button class="modal-close" onclick="closeModal()" title="Close (Esc)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="graph-canvas" id="canvas-modal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sketch toolbar -->
+  <div class="sketch-tools">
+    <span style="opacity:0.6">Theme</span>
+    <button onclick="toggleTheme()" id="theme-btn">☀ Light</button>
+  </div>
+
+  <script>
+    function showState(state) {
+      document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+      const tabs = document.querySelectorAll('.variant-tab');
+      const banner = document.getElementById('state-banner');
+      const banners = {
+        detail: 'State A · Detail tab active · Left pane shows the tree only (no Tree/Source mode strip). Click <strong>Graph</strong> or <strong>Source</strong> in the right pane to swap.',
+        graph:  'State B · Graph tab active · entity neighborhood rendered inline. The <strong>⤢ Expand</strong> button (top right of the canvas) opens the modal.',
+        source: 'State C · Source tab active · entity-scoped Turtle snippet for the selected class. This tab is <strong>Developer-only</strong> — Standard view does not show it. The old "&lt;/&gt; Source" link from the entity actions has been removed (replaced by this tab).',
+        modal:  'State D · EntityGraphModal expanded over the editor · same graph data, more canvas. Press <strong>Esc</strong>, click outside, or hit <strong>✕</strong> to close.',
+      };
+      banner.innerHTML = banners[state];
+      const tabIndex = {detail: 0, graph: 1, source: 2, modal: 3}[state];
+      tabs[tabIndex].classList.add('active');
+      if (state === 'detail') { paneSwap('detail'); closeModal(); }
+      else if (state === 'graph') { paneSwap('graph'); closeModal(); }
+      else if (state === 'source') { paneSwap('source'); closeModal(); }
+      else if (state === 'modal') { paneSwap('graph'); openModal(); }
+    }
+    function paneSwap(target) {
+      document.querySelectorAll('.pane-tabstrip button').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + target).classList.add('active');
+      document.getElementById('body-detail').style.display = target === 'detail' ? 'block' : 'none';
+      document.getElementById('body-graph').style.display  = target === 'graph'  ? 'flex'  : 'none';
+      document.getElementById('body-source').style.display = target === 'source' ? 'flex' : 'none';
+      if (target === 'graph') {
+        requestAnimationFrame(() => drawGraph('canvas-pane'));
+      }
+    }
+    function openModal() {
+      document.getElementById('modal').classList.add('open');
+      requestAnimationFrame(() => drawGraph('canvas-modal', /*big=*/true));
+    }
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+      const c = document.getElementById('canvas-modal');
+      c.dataset.drawn = '';
+      while (c.firstChild) c.removeChild(c.firstChild);
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next;
+      document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙 Dark' : '☀ Light';
+    }
+
+    function drawGraph(canvasId, big) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || canvas.dataset.drawn === '1') return;
+      canvas.dataset.drawn = '1';
+      while (canvas.firstChild) canvas.removeChild(canvas.firstChild);
+
+      const W = canvas.clientWidth || (big ? 1100 : 600);
+      const cx = W / 2;
+      const yOffset = big ? 24 : 16;
+
+      const nodes = big ? [
+        { id: 'deity',     label: 'Deity',                 x: cx - 60,  y: yOffset + 40,  cls: 'parent' },
+        { id: 'angel',     label: 'Angel',                 x: cx - 320, y: yOffset + 200, cls: 'sibling' },
+        { id: 'focus',     label: 'Triune God',            x: cx - 70,  y: yOffset + 200, cls: 'focus' },
+        { id: 'father',    label: 'God the Father',        x: cx - 380, y: yOffset + 380, cls: 'child' },
+        { id: 'spirit',    label: 'God the Holy Spirit',   x: cx - 100, y: yOffset + 380, cls: 'child' },
+        { id: 'son',       label: 'God the Son',           x: cx + 200, y: yOffset + 380, cls: 'child' },
+        { id: 'archangel', label: 'Archangel',             x: cx - 480, y: yOffset + 380, cls: 'child' },
+      ] : [
+        { id: 'deity',  label: 'Deity',                 x: cx - 50,  y: yOffset + 24,  cls: 'parent' },
+        { id: 'angel',  label: 'Angel',                 x: cx - 220, y: yOffset + 130, cls: 'sibling' },
+        { id: 'focus',  label: 'Triune God',            x: cx - 60,  y: yOffset + 130, cls: 'focus' },
+        { id: 'father', label: 'God the Father',        x: cx - 250, y: yOffset + 280, cls: 'child' },
+        { id: 'spirit', label: 'God the Holy Spirit',   x: cx - 90,  y: yOffset + 280, cls: 'child' },
+        { id: 'son',    label: 'God the Son',           x: cx + 110, y: yOffset + 280, cls: 'child' },
+      ];
+      const edges = big
+        ? [['deity','focus'],['deity','angel'],['focus','father'],['focus','spirit'],['focus','son'],['angel','archangel']]
+        : [['deity','focus'],['deity','angel'],['focus','father'],['focus','spirit'],['focus','son']];
+
+      if (!big) {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'graph-toolbar';
+        toolbar.innerHTML = '<button>↕ Direction</button><button>Descendants</button><button>⤴ Reset</button>';
+        canvas.appendChild(toolbar);
+
+        const expand = document.createElement('button');
+        expand.className = 'expand-btn';
+        expand.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Expand';
+        expand.onclick = () => showState('modal');
+        canvas.appendChild(expand);
+      }
+
+      const counter = document.createElement('div');
+      counter.className = 'graph-counter';
+      counter.textContent = nodes.length + ' nodes · ' + edges.length + ' edges';
+      canvas.appendChild(counter);
+
+      const nodeEls = {};
+      nodes.forEach(n => {
+        const el = document.createElement('div');
+        el.className = 'graph-node ' + n.cls;
+        el.textContent = n.label;
+        el.style.left = n.x + 'px';
+        el.style.top = n.y + 'px';
+        canvas.appendChild(el);
+        nodeEls[n.id] = el;
+      });
+
+      requestAnimationFrame(() => {
+        edges.forEach(([from, to]) => {
+          const a = nodeEls[from].getBoundingClientRect();
+          const b = nodeEls[to].getBoundingClientRect();
+          const cRect = canvas.getBoundingClientRect();
+          const x1 = a.left - cRect.left + a.width/2;
+          const y1 = a.top  - cRect.top + a.height;
+          const x2 = b.left - cRect.left + b.width/2;
+          const y2 = b.top  - cRect.top;
+          const dx = x2 - x1, dy = y2 - y1;
+          const len = Math.sqrt(dx*dx + dy*dy);
+          const angle = Math.atan2(dy, dx);
+          const edge = document.createElement('div');
+          edge.className = 'graph-edge graph-arrow';
+          edge.style.left = x1 + 'px';
+          edge.style.top  = y1 + 'px';
+          edge.style.width = (len - 8) + 'px';
+          edge.style.transform = 'rotate(' + angle + 'rad)';
+          canvas.appendChild(edge);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

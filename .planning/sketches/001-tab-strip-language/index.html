@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch 001 — Tab Strip Language</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    body.with-variants { padding-top: 56px; }
+    .stage {
+      max-width: 880px;
+      margin: 32px auto;
+      padding: 0 24px 64px;
+    }
+    .stage-title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .stage-sub {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      margin: 0 0 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .pane-frame {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .entity-header {
+      padding: 14px 18px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .entity-pip {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--color-owl-class) 18%, transparent);
+      color: var(--color-owl-class);
+      font-weight: 700;
+      font-size: 12px;
+      border: 1px solid color-mix(in srgb, var(--color-owl-class) 35%, transparent);
+    }
+    .entity-name {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .entity-iri {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .pane-body {
+      padding: 18px;
+      min-height: 220px;
+      color: var(--text-muted);
+      font-size: var(--text-sm);
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: start;
+    }
+    .field-label {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-top: 6px;
+    }
+    .field-value {
+      color: var(--text);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      font-size: var(--text-sm);
+    }
+
+    /* === Variant A: Folio caps === */
+    .tabstrip-a {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .tabstrip-a button {
+      flex: 1;
+      padding: 14px 18px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .tabstrip-a button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tabstrip-a button:hover:not(.active) {
+      color: var(--text);
+    }
+    .tabstrip-a .icon {
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: -2px;
+    }
+
+    /* === Variant B: sentence soft === */
+    .tabstrip-b {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+    }
+    .tabstrip-b button {
+      padding: 6px 14px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: var(--radius-md);
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .tabstrip-b button.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+    .tabstrip-b button:hover:not(.active) {
+      color: var(--text);
+    }
+
+    /* === Variant C: icon + label === */
+    .tabstrip-c {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .tabstrip-c button {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .tabstrip-c button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--accent-bg);
+    }
+    .tabstrip-c button:hover:not(.active) {
+      color: var(--text);
+      background: var(--bg-subtle);
+    }
+    .tabstrip-c svg { flex-shrink: 0; }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+    .legend strong { color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body class="with-variants">
+  <!-- Variant nav -->
+  <div class="variant-nav">
+    <span class="label">Sketch 001 — tab strip language</span>
+    <button class="variant-tab" onclick="show('a', this)">A: Folio caps</button>
+    <button class="variant-tab" onclick="show('b', this)">B: Sentence soft</button>
+    <button class="variant-tab" onclick="show('c', this)">C: Icon + label (below name)</button>
+    <button class="variant-tab active" onclick="show('d', this)">D: Icon + label (above name) ★</button>
+  </div>
+
+  <!-- ============== VARIANT A: Folio caps ============== -->
+  <section id="variant-a" class="variant" style="display:none">
+    <div class="stage">
+      <div class="stage-sub">Variant A · Detail tab active</div>
+      <h2 class="stage-title">Caps + letter-spacing — heaviest visual weight</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">Mirrors Folio Enrich's <code>CANDIDATE DETAILS | ENTITY GRAPH</code>. Pulls the eye, signals "this is a major navigation control."</p>
+
+      <div class="pane-frame">
+        <div class="entity-header">
+          <div class="entity-pip">C</div>
+          <div>
+            <div class="entity-name">Triune God</div>
+            <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+          </div>
+        </div>
+        <div class="tabstrip-a">
+          <button class="active" onclick="swapTab(this, 'a')">
+            <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Detail
+          </button>
+          <button onclick="swapTab(this, 'a')">
+            <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><line x1="6" y1="9" x2="11.4" y2="15.6"/><line x1="18" y1="9" x2="12.6" y2="15.6"/></svg>
+            Entity Graph
+          </button>
+        </div>
+        <div class="pane-body">
+          <div class="field-row"><div class="field-label">Primary Label</div><div class="field-value">Triune God</div></div>
+          <div class="field-row"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons.</div></div>
+          <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value">Deity</div></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><strong>Pros</strong><br>Loud and obvious — fixes the discoverability complaint instantly. Familiar to Folio users.</div>
+        <div><strong>Cons</strong><br>Caps + tracking is heavy. Fights with the entity name above it for visual hierarchy.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== VARIANT B: Sentence soft ============== -->
+  <section id="variant-b" class="variant" style="display:none">
+    <div class="stage">
+      <div class="stage-sub">Variant B · Detail tab active</div>
+      <h2 class="stage-title">Pill-style soft tabs — quietest visual weight</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">macOS-style segmented control. Lower contrast, defers to the entity content. Risks under-discoverability — the original problem we're solving.</p>
+
+      <div class="pane-frame">
+        <div class="entity-header">
+          <div class="entity-pip">C</div>
+          <div>
+            <div class="entity-name">Triune God</div>
+            <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+          </div>
+        </div>
+        <div class="tabstrip-b">
+          <button class="active" onclick="swapTab(this, 'b')">Detail</button>
+          <button onclick="swapTab(this, 'b')">Graph</button>
+        </div>
+        <div class="pane-body">
+          <div class="field-row"><div class="field-label">Primary Label</div><div class="field-value">Triune God</div></div>
+          <div class="field-row"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons.</div></div>
+          <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value">Deity</div></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><strong>Pros</strong><br>Minimal visual noise. Doesn't compete with the entity name. Reads as "settings"-like.</div>
+        <div><strong>Cons</strong><br>Easy to overlook. The discoverability problem might persist. Two short labels feel underweighted.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== VARIANT C: Icon + label ============== -->
+  <section id="variant-c" class="variant" style="display:none">
+    <div class="stage">
+      <div class="stage-sub">Variant C · Detail tab active (recommended starting point)</div>
+      <h2 class="stage-title">Icon + sentence-case label — balanced</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">Lucide icons (file-text + share/network) + readable labels. Underline indicates active. Light accent-tinted background on active for extra signal.</p>
+
+      <div class="pane-frame">
+        <div class="entity-header">
+          <div class="entity-pip">C</div>
+          <div>
+            <div class="entity-name">Triune God</div>
+            <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+          </div>
+        </div>
+        <div class="tabstrip-c">
+          <button class="active" onclick="swapTab(this, 'c')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            Detail
+          </button>
+          <button onclick="swapTab(this, 'c')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+            Graph
+          </button>
+        </div>
+        <div class="pane-body">
+          <div class="field-row"><div class="field-label">Primary Label</div><div class="field-value">Triune God</div></div>
+          <div class="field-row"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons.</div></div>
+          <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value">Deity</div></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><strong>Pros</strong><br>Icon scannability + label clarity. Underline + accent fill on active = strong "you are here" signal. Scales to 3-4 tabs if we ever add (e.g. History, Diff).</div>
+        <div><strong>Cons</strong><br>Slightly busier than B. Icon needs to be unambiguous (graph-bracket should mean "graph" — easy to test).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== VARIANT D: Icon + label, tab ABOVE entity header (WINNER) ============== -->
+  <section id="variant-d" class="variant active">
+    <div class="stage">
+      <div class="stage-sub">Variant D · Detail tab active · ★ Selected</div>
+      <h2 class="stage-title">Icon + sentence-case label, tab strip ABOVE the entity header</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">Same icon-and-label treatment as C, but the tab strip is the topmost chrome of the pane. The entity header (pip + name + IRI) becomes <em>content</em> of whichever tab is active — when you switch from Detail to Graph, the body changes but the entity header stays visible as persistent context. Reads as: "I am viewing &lt;Triune God&gt;, in &lt;Detail&gt; mode."</p>
+
+      <div class="pane-frame">
+        <div class="tabstrip-c">
+          <button class="active" onclick="swapTab(this, 'd')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            Detail
+          </button>
+          <button onclick="swapTab(this, 'd')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+            Graph
+          </button>
+        </div>
+        <div class="entity-header">
+          <div class="entity-pip">C</div>
+          <div>
+            <div class="entity-name">Triune God</div>
+            <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+          </div>
+        </div>
+        <div class="pane-body">
+          <div class="field-row"><div class="field-label">Primary Label</div><div class="field-value">Triune God</div></div>
+          <div class="field-row"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons.</div></div>
+          <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value">Deity</div></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><strong>Pros</strong><br>Tab strip is the first thing the eye lands on — maximum discoverability, fixes the original "not obvious" complaint. Entity header still anchors the pane so the user doesn't lose orientation when switching modes. Reads as a unified "Entity workspace" instead of "Entity card with a buried tab."</div>
+        <div><strong>Cons</strong><br>Tab strip + entity header costs ~88px of vertical space at the top before content begins (vs ~62px in C). May feel top-heavy in Standard view's compact pane — to be validated in sketch 002.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sketch toolbar -->
+  <div class="sketch-tools">
+    <span style="opacity:0.6">Theme</span>
+    <button onclick="toggleTheme()" id="theme-btn">☀ Light</button>
+  </div>
+
+  <script>
+    function show(id, btn) {
+      document.querySelectorAll('.variant').forEach(v => v.style.display = 'none');
+      document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('variant-' + id).style.display = 'block';
+      btn.classList.add('active');
+    }
+    function swapTab(btn, scope) {
+      const parent = btn.parentElement;
+      parent.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next;
+      document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙 Dark' : '☀ Light';
+    }
+  </script>
+</body>
+</html>
