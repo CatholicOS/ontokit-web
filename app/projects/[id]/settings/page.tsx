@@ -2883,10 +2883,7 @@ function RemoteSyncSection({
               {/* Repository */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={cn(
-                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
-                    isWebhookDriven && "opacity-60"
-                  )}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Repository owner
                   </label>
                   <input
@@ -2904,10 +2901,7 @@ function RemoteSyncSection({
                   />
                 </div>
                 <div>
-                  <label className={cn(
-                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
-                    isWebhookDriven && "opacity-60"
-                  )}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Repository name
                   </label>
                   <input
@@ -2939,10 +2933,7 @@ function RemoteSyncSection({
               {/* Branch + File path */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={cn(
-                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
-                    isWebhookDriven && "opacity-60"
-                  )}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Branch
                   </label>
                   <input
@@ -2960,10 +2951,7 @@ function RemoteSyncSection({
                   />
                 </div>
                 <div>
-                  <label className={cn(
-                    "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300",
-                    isWebhookDriven && "opacity-60"
-                  )}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     File path
                   </label>
                   <input
