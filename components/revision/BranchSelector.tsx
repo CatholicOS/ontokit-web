@@ -167,7 +167,7 @@ export function BranchSelector({
           />
 
           {/* Menu */}
-          <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+          <div className="absolute right-0 top-full z-50 mt-1 w-max min-w-64 max-w-[32rem] rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
             {/* Error message */}
             {error && (
               <div className="flex items-center gap-2 border-b border-slate-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-slate-700 dark:bg-red-900/20 dark:text-red-400">
@@ -240,7 +240,7 @@ export function BranchSelector({
                   aria-selected={branch.name === currentBranch}
                   tabIndex={0}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     {branch.name === currentBranch ? (
                       <Check className="h-4 w-4 text-primary-600" />
                     ) : (
@@ -254,7 +254,7 @@ export function BranchSelector({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {branch.commit_hash && (
                       <code className="font-mono text-xs text-slate-400 dark:text-slate-500">
                         {branch.commit_hash.slice(0, 7)}
