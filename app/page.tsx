@@ -69,20 +69,24 @@ export default function HomePage() {
   const unfilteredTotal = data?.pages.at(-1)?.unfiltered_total ?? 0;
   const isFiltered = (!!debouncedSearch || filter !== "all") && unfilteredTotal > total;
 
-  const [nextPageError, setNextPageError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setNextPageError(null);
-  }, [filter, debouncedSearch]);
+  // The "load more" error belongs to one particular list. Tagging it with that
+  // list's identity and deriving visibility lets a filter or search change
+  // discard it during render, instead of an effect clearing it afterwards.
+  const listKey = `${filter}\u0000${debouncedSearch}`;
+  const [pageError, setPageError] = useState<{ listKey: string; message: string } | null>(null);
+  const nextPageError = pageError?.listKey === listKey ? pageError.message : null;
 
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      setNextPageError(null);
+      setPageError(null);
       fetchNextPage().catch((err) => {
-        setNextPageError(err instanceof Error ? err.message : "Failed to load more projects");
+        setPageError({
+          listKey,
+          message: err instanceof Error ? err.message : "Failed to load more projects",
+        });
       });
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, listKey]);
 
   return (
     <>
