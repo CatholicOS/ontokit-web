@@ -30,6 +30,7 @@ import { useSelectionStore } from "@/lib/stores/selectionStore";
 import { getLocalName } from "@/lib/utils";
 import { extractTreeLabelMap } from "@/lib/graph/buildGraphData";
 import { useAnnounce } from "@/components/ui/ScreenReaderAnnouncer";
+import { HealthCheckPanel } from "@/components/editor/HealthCheckPanel";
 
 const OntologySourceEditor = dynamic(
   () => import("@/components/editor/OntologySourceEditor").then((mod) => mod.OntologySourceEditor),
@@ -62,6 +63,7 @@ export interface DeveloperEditorLayoutProps {
   accessToken?: string;
   activeBranch?: string;
   canEdit: boolean;
+  canManage?: boolean;
   canSuggest?: boolean;
   isSuggestionMode?: boolean;
   // Tree state (from useOntologyTree)
@@ -106,6 +108,11 @@ export interface DeveloperEditorLayoutProps {
   onUpdateClass?: (classIri: string, data: ClassUpdatePayload) => Promise<void>;
   detailRefreshKey?: number;
 
+  // Side panels
+  showHealthCheck?: boolean;
+  onCloseHealthCheck?: () => void;
+  onLintWsStatusChange?: (status: import("@/components/ui/ConnectionStatus").ConnectionState) => void;
+
   // Property & Individual editing
   onUpdateProperty?: (propertyIri: string, data: TurtlePropertyUpdateData) => Promise<void>;
   onUpdateIndividual?: (individualIri: string, data: TurtleIndividualUpdateData) => Promise<void>;
@@ -125,6 +132,7 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
     accessToken,
     activeBranch,
     canEdit,
+    canManage = false,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     canSuggest = false,
     isSuggestionMode = false,
@@ -160,6 +168,9 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
     selectedNodeFallback,
     onUpdateClass,
     detailRefreshKey,
+    showHealthCheck = false,
+    onCloseHealthCheck,
+    onLintWsStatusChange,
     onUpdateProperty,
     onUpdateIndividual,
     onReparentClass,
@@ -597,6 +608,21 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
               )}
             </div>
 
+            {/* Right Panel - Health Check */}
+            {showHealthCheck && (
+              <div className="w-96 flex-shrink-0">
+                <HealthCheckPanel
+                  projectId={projectId}
+                  accessToken={accessToken}
+                  branch={activeBranch}
+                  isOpen={showHealthCheck}
+                  onClose={onCloseHealthCheck ?? (() => {})}
+                  onNavigateToClass={(iri) => navigateToNode(iri)}
+                  canRunLint={canManage}
+                  onWsStatusChange={onLintWsStatusChange}
+                />
+              </div>
+            )}
           </>
         ) : (
           /* Source View */

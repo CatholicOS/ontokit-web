@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useOntologyTree } from "@/lib/hooks/useOntologyTree";
-import { useCollaborationStatus } from "@/lib/hooks/useCollaborationStatus";
 import { useProject, derivePermissions } from "@/lib/hooks/useProject";
 import { useOpenPRCount } from "@/lib/hooks/useOpenPRCount";
 import { useLintSummary } from "@/lib/hooks/useLintSummary";
@@ -15,8 +14,6 @@ export interface UseProjectViewerOptions {
   accessToken?: string;
   sessionStatus: "loading" | "authenticated" | "unauthenticated";
   activeBranch?: string;
-  /** Enable WebSocket connections (lint status, collaboration). Defaults to false. */
-  enableWebSocket?: boolean;
 }
 
 export function useProjectViewer({
@@ -24,7 +21,6 @@ export function useProjectViewer({
   accessToken,
   sessionStatus,
   activeBranch,
-  enableWebSocket = false,
 }: UseProjectViewerOptions) {
   // Project data from shared React Query cache
   const {
@@ -68,13 +64,6 @@ export function useProjectViewer({
     projectId,
     accessToken,
     branchKey: activeBranch,
-  });
-
-  // WebSocket connection status (editor only)
-  const collaboration = useCollaborationStatus({
-    projectId,
-    enabled: enableWebSocket && !!projectId && !!accessToken && sessionStatus === "authenticated",
-    token: accessToken,
   });
 
   // Derive fallback data for the selected node from the tree
@@ -295,10 +284,5 @@ export function useProjectViewer({
     setSourceIriIndex,
     isIndexing,
     resetSourceState,
-
-    // Collaboration
-    connectionStatus: collaboration.status,
-    wsEndpoint: collaboration.endpoint,
-    wsPurpose: collaboration.purpose,
   };
 }
