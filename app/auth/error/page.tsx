@@ -36,9 +36,8 @@ function ErrorContent() {
   useEffect(() => {
     if (!isTransient || retryCount >= MAX_RETRIES || retrying) return;
     if (countdown <= 0) {
-      setRetryCount((c) => c + 1);
-      retry();
-      return;
+      const id = setTimeout(() => retry(), 0);
+      return () => clearTimeout(id);
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
