@@ -24,7 +24,7 @@ jobs:
     # of the whole codebase, and Dependabot can't read repository secrets anyway.
     if: github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # `semgrep ci` is incompatible with explicit --config flags when logged in
       # (SEMGREP_APP_TOKEN set) — it expects rules from the server-side AppSec
       # policy. When not logged in, fall back to the explicit local rulesets so
