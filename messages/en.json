@@ -11,18 +11,30 @@
     "filter": "Filter",
     "export": "Export",
     "import": "Import",
-    "settings": "Settings"
+    "settings": "Settings",
+    "retry": "Try Again",
+    "retrying": "Retrying..."
   },
   "auth": {
-    "signIn": "Sign In",
-    "signOut": "Sign Out",
-    "signInWith": "Sign in with {provider}"
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signInWith": "Sign in with {provider}",
+    "userAvatar": "User avatar",
+    "settings": "Settings"
   },
   "nav": {
     "home": "Home",
     "projects": "Projects",
+    "info": "Info",
+    "documentation": "Documentation",
+    "apiReference": "API Reference",
     "settings": "Settings",
     "help": "Help"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "pt": "Português"
   },
   "ontology": {
     "title": "Ontology",
@@ -73,6 +85,14 @@
     "userJoined": "{name} joined",
     "userLeft": "{name} left"
   },
+  "connection": {
+    "connecting": "Connecting",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "notAvailable": "Not Available",
+    "purpose": "Purpose: {purpose}",
+    "endpoint": "Endpoint: {endpoint}"
+  },
   "git": {
     "history": "History",
     "commit": "Commit",
@@ -88,5 +108,37 @@
     "forbidden": "Access denied",
     "serverError": "Server error",
     "networkError": "Network error"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitleAuth": "Browse public projects or manage your own",
+    "subtitleGuest": "Browse public ontology projects",
+    "newProject": "New Project",
+    "createProject": "Create Project",
+    "filterMine": "My Projects",
+    "filterPublic": "Public",
+    "filterPrivate": "Private",
+    "filterAll": "All",
+    "searchPlaceholder": "Search projects...",
+    "signInPromptTitle": "Sign in to see your projects",
+    "signInPromptDescription": "View all projects you own or are a member of",
+    "signInPrivatePromptTitle": "Sign in to see private projects",
+    "signInPrivatePromptDescription": "View all private projects you own or are a member of",
+    "noProjectsFound": "No projects found",
+    "noProjectsYet": "No projects yet",
+    "noPrivateProjectsYet": "No private projects yet",
+    "noPrivateProjectsDescription": "You are not a member of any private projects, and do not own any private projects. Create your first private project to get started.",
+    "noProjectsAvailable": "No projects available",
+    "tryDifferentSearch": "Try a different search term",
+    "createFirstProject": "Create your first project to get started",
+    "createPrivateProject": "Create Private Project",
+    "checkBackLater": "Check back later for public projects",
+    "failedToLoad": "Failed to load projects",
+    "loadMore": "Load More",
+    "loadingMore": "Loading...",
+    "retryLoad": "Retry",
+    "count": "{count, plural, one {# project} other {# projects}}",
+    "searchCount": "{count, plural, one {# result} other {# results}} for \"{query}\"",
+    "ofTotal": "(of {total})"
   }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { WebSocketIcon } from "@/components/ui/icons/WebSocketIcon";
 import { cn } from "@/lib/utils";
@@ -21,28 +22,28 @@ const stateConfig = {
     icon: Loader2,
     color: "text-amber-500",
     bgColor: "bg-amber-100 dark:bg-amber-900/30",
-    label: "Connecting",
+    labelKey: "connecting" as const,
     animate: true,
   },
   connected: {
     icon: WebSocketIcon,
     color: "text-green-500",
     bgColor: "bg-green-100 dark:bg-green-900/30",
-    label: "Connected",
+    labelKey: "connected" as const,
     animate: false,
   },
   disconnected: {
     icon: WebSocketIcon,
     color: "text-red-500",
     bgColor: "bg-red-100 dark:bg-red-900/30",
-    label: "Disconnected",
+    labelKey: "disconnected" as const,
     animate: false,
   },
   disabled: {
     icon: WebSocketIcon,
     color: "text-slate-400 dark:text-slate-500",
     bgColor: "bg-slate-100 dark:bg-slate-800",
-    label: "Not Available",
+    labelKey: "notAvailable" as const,
     animate: false,
   },
 };
@@ -54,17 +55,19 @@ export function ConnectionStatus({
   purpose,
   endpoint,
 }: ConnectionStatusProps) {
+  const t = useTranslations("connection");
   const config = stateConfig[state];
   const Icon = config.icon;
+  const label = t(config.labelKey);
 
   // Build informative tooltip
   const buildTitle = () => {
-    const parts: string[] = [config.label];
+    const parts: string[] = [label];
     if (purpose) {
-      parts.push(`Purpose: ${purpose}`);
+      parts.push(t("purpose", { purpose }));
     }
     if (endpoint) {
-      parts.push(`Endpoint: ${endpoint}`);
+      parts.push(t("endpoint", { endpoint }));
     }
     return parts.join("\n");
   };
@@ -87,7 +90,7 @@ export function ConnectionStatus({
       />
       {showLabel && (
         <span className={cn("text-xs font-medium", config.color)}>
-          {config.label}
+          {label}
         </span>
       )}
     </div>

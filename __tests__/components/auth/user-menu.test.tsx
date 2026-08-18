@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithIntl as render } from "../../helpers/renderWithIntl";
 import userEvent from "@testing-library/user-event";
 
 const mockSignIn = vi.fn();

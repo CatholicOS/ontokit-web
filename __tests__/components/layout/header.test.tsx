@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithIntl as render } from "../../helpers/renderWithIntl";
 import { Header } from "@/components/layout/header";
 
 // Mock next/link
@@ -16,6 +17,9 @@ vi.mock("next/link", () => ({
 let mockPathname = "/";
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
+  // LanguageSwitcher (rendered by Header) calls router.refresh() after
+  // writing the NEXT_LOCALE cookie.
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 // Mock child components
