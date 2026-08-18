@@ -21,6 +21,7 @@ import { useToast } from "@/lib/context/ToastContext";
 import { useProject, derivePermissions } from "@/lib/hooks/useProject";
 import type { OntologySourceEditorRef } from "@/components/editor/OntologySourceEditor";
 import { ConnectionStatus } from "@/components/ui/ConnectionStatus";
+import { useCollaborationStatus } from "@/lib/hooks/useCollaborationStatus";
 
 export default function ProjectViewerPage() {
   const { data: session, status } = useSession();
@@ -191,6 +192,8 @@ function ViewerContent({
     activeBranch: resolvedBranch,
   });
 
+  const collaboration = useCollaborationStatus({ projectId });
+
   const {
     project, canManage, canSuggest, hasValidAccess,
     nodes, totalClasses, isTreeLoading, treeError,
@@ -278,9 +281,9 @@ function ViewerContent({
               {/* WebSocket Connection Status */}
               <div className="flex items-center gap-1">
                 <ConnectionStatus
-                  state="disabled"
-                  purpose="Real-time collaboration (coming soon)"
-                  endpoint="/api/v1/collab/ws"
+                  state={collaboration.status}
+                  purpose={collaboration.purpose}
+                  endpoint={collaboration.endpoint}
                 />
               </div>
 
