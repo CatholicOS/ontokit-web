@@ -38,7 +38,7 @@ import { AnnotationRow } from "@/components/editor/standard/AnnotationRow";
 import { InlineAnnotationAdder } from "@/components/editor/standard/InlineAnnotationAdder";
 import { RelationshipSection, type RelationshipGroup, type RelationshipTarget } from "@/components/editor/standard/RelationshipSection";
 import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, RELATIONSHIP_PROPERTY_IRIS, SEE_ALSO_IRI, getAnnotationPropertyInfo, getAnnotationCardinality } from "@/lib/ontology/annotationProperties";
-import { ensureTrailingPlaceholder } from "@/lib/ontology/annotationCardinality";
+import { ensureTrailingPlaceholder, usedLanguages } from "@/lib/ontology/annotationCardinality";
 import { AutoSaveAffordanceBar } from "@/components/editor/AutoSaveAffordanceBar";
 import { CrossReferencesPanel } from "@/components/editor/CrossReferencesPanel";
 import { SimilarConceptsPanel } from "@/components/editor/SimilarConceptsPanel";
@@ -664,6 +664,7 @@ export function ClassDetailPanel({
                       className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm focus:border-primary-500 focus:outline-hidden focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                     />
                     <LanguagePicker
+                      excludeCodes={usedLanguages(editLabels, "single-per-lang")}
                       value={label.lang}
                       onChange={(code) => {
                         updateLabel(index, "lang", code);
@@ -716,6 +717,7 @@ export function ClassDetailPanel({
                         <AnnotationRow
                           key={vIdx}
                           propertyIri={DEFINITION_IRI}
+                          excludeLangs={usedLanguages(defValues, getAnnotationCardinality(DEFINITION_IRI))}
                           value={val.value}
                           lang={val.lang}
                           onValueChange={(v) => updateAnnotationValue(DEFINITION_IRI, vIdx, "value", v)}
@@ -827,6 +829,7 @@ export function ClassDetailPanel({
                               <AnnotationRow
                                 key={vIdx}
                                 propertyIri={annotation.property_iri}
+                                excludeLangs={usedLanguages(annotation.values, getAnnotationCardinality(annotation.property_iri))}
                                 value={val.value}
                                 lang={val.lang}
                                 onValueChange={(v) => updateAnnotationValue(annotation.property_iri, vIdx, "value", v)}

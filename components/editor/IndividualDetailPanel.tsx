@@ -26,7 +26,7 @@ import { InlineAnnotationAdder } from "@/components/editor/standard/InlineAnnota
 import { RelationshipSection, type RelationshipGroup, type RelationshipTarget } from "@/components/editor/standard/RelationshipSection";
 import { PropertyAssertionSection } from "@/components/editor/standard/PropertyAssertionSection";
 import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, SEE_ALSO_IRI, getAnnotationPropertyInfo, getAnnotationCardinality } from "@/lib/ontology/annotationProperties";
-import { ensureTrailingPlaceholder } from "@/lib/ontology/annotationCardinality";
+import { ensureTrailingPlaceholder, usedLanguages } from "@/lib/ontology/annotationCardinality";
 import { AutoSaveAffordanceBar } from "@/components/editor/AutoSaveAffordanceBar";
 import { useEntityAutoSave } from "@/lib/hooks/useEntityAutoSave";
 import { useToast } from "@/lib/context/ToastContext";
@@ -454,7 +454,7 @@ export function IndividualDetailPanel({
                 {editLabels.map((label, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <input type="text" value={label.value} onChange={(e) => updateLabel(index, "value", e.target.value)} onBlur={() => triggerSave()} placeholder="Label text" className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm focus:border-primary-500 focus:outline-hidden focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
-                    <LanguagePicker value={label.lang} onChange={(code) => { updateLabel(index, "lang", code); triggerSave(); }} />
+                    <LanguagePicker excludeCodes={usedLanguages(editLabels, "single-per-lang")} value={label.lang} onChange={(code) => { updateLabel(index, "lang", code); triggerSave(); }} />
                     {editLabels.length > 1 ? (
                       <button onClick={() => removeLabel(index)} className="rounded-sm p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"><Trash2 className="h-3.5 w-3.5" /></button>
                     ) : <div className="rounded-sm p-1"><div className="h-3.5 w-3.5" /></div>}
@@ -479,7 +479,7 @@ export function IndividualDetailPanel({
             <Section title="Definition" icon={<Lightbulb className="h-4 w-4" />}>
               <div className="space-y-2">
                 {editDefinitions.map((def, index) => (
-                  <AnnotationRow key={index} propertyIri={DEFINITION_IRI} value={def.value} lang={def.lang}
+                  <AnnotationRow key={index} propertyIri={DEFINITION_IRI} excludeLangs={usedLanguages(editDefinitions, getAnnotationCardinality(DEFINITION_IRI))} value={def.value} lang={def.lang}
                     onValueChange={(v) => updateDefinition(index, "value", v)} onLangChange={(l) => updateDefinition(index, "lang", l)}
                     onRemove={editDefinitions.filter((d) => d.value.trim()).length > 0 && index < editDefinitions.length - 1 ? () => removeDefinition(index) : undefined}
                     onBlur={() => triggerSave()} showPropertyLabel={false} placeholder="Add a definition..." />
@@ -674,7 +674,7 @@ export function IndividualDetailPanel({
                 {editAnnotations.map((ann) => (
                   <div key={ann.property_iri} className="space-y-2">
                     {ann.values.map((v, vi) => (
-                      <AnnotationRow key={`${ann.property_iri}-${vi}`} propertyIri={ann.property_iri} value={v.value} lang={v.lang}
+                      <AnnotationRow key={`${ann.property_iri}-${vi}`} propertyIri={ann.property_iri} excludeLangs={usedLanguages(ann.values, getAnnotationCardinality(ann.property_iri))} value={v.value} lang={v.lang}
                         onValueChange={(val) => updateAnnotationValue(ann.property_iri, vi, "value", val)}
                         onLangChange={(lang) => updateAnnotationValue(ann.property_iri, vi, "lang", lang)}
                         onRemove={ann.values.filter((x) => x.value.trim()).length > 0 && vi < ann.values.length - 1 ? () => removeAnnotationValue(ann.property_iri, vi) : undefined}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ensureTrailingPlaceholder } from "@/lib/ontology/annotationCardinality";
+import { ensureTrailingPlaceholder, usedLanguages } from "@/lib/ontology/annotationCardinality";
 import { getAnnotationCardinality } from "@/lib/ontology/annotationProperties";
 
 // ── ensureTrailingPlaceholder — "multiple" ────────────────────────────────
@@ -28,23 +28,23 @@ describe('ensureTrailingPlaceholder — "multiple"', () => {
 // ── ensureTrailingPlaceholder — "single-per-lang" ────────────────────────
 
 describe('ensureTrailingPlaceholder — "single-per-lang"', () => {
-  it("adds an @en placeholder for an empty array", () => {
-    const result = ensureTrailingPlaceholder([], "single-per-lang");
-    expect(result).toEqual([{ value: "", lang: "en" }]);
+  it("defaults the first row to @en when nothing is filled yet", () => {
+    expect(ensureTrailingPlaceholder([], "single-per-lang")).toEqual([{ value: "", lang: "en" }]);
   });
 
-  it("does NOT add a second @en placeholder when @en is already filled (SKOS S14)", () => {
-    const input = [{ value: "Foo", lang: "en" }];
-    const result = ensureTrailingPlaceholder(input, "single-per-lang");
-    // The placeholder lang must differ from "en"
-    expect(result).toHaveLength(2);
-    expect(result[1].value).toBe("");
-    expect(result[1].lang).not.toBe("en");
-  });
-
-  it("adds a placeholder with the next uncovered language when @en is filled", () => {
+  it("does NOT offer a second @en row when @en is already filled (SKOS S14)", () => {
     const result = ensureTrailingPlaceholder([{ value: "Foo", lang: "en" }], "single-per-lang");
-    expect(result[1].lang).toBe("pt");
+    expect(result).toHaveLength(2);
+    expect(result[1]).toEqual({ value: "", lang: "" });
+  });
+
+  it("leaves the placeholder language blank so the filtered picker forces a choice", () => {
+    const result = ensureTrailingPlaceholder(
+      [{ value: "Foo", lang: "en" }, { value: "Bar", lang: "pt" }],
+      "single-per-lang",
+    );
+    expect(result).toHaveLength(3);
+    expect(result[2]).toEqual({ value: "", lang: "" });
   });
 
   it("keeps an existing trailing empty placeholder as-is", () => {
@@ -52,7 +52,7 @@ describe('ensureTrailingPlaceholder — "single-per-lang"', () => {
     expect(ensureTrailingPlaceholder(input, "single-per-lang")).toStrictEqual(input);
   });
 
-  it("adds a blank-lang placeholder when all common languages are already filled", () => {
+  it("still offers a row when many languages are already filled", () => {
     const input = [
       { value: "A", lang: "en" },
       { value: "B", lang: "pt" },
@@ -65,12 +65,36 @@ describe('ensureTrailingPlaceholder — "single-per-lang"', () => {
     expect(result).toHaveLength(7);
     expect(result[6]).toEqual({ value: "", lang: "" });
   });
+});
 
-  it("skips covered languages and finds the next available one", () => {
-    const input = [{ value: "Foo", lang: "en" }, { value: "Bar", lang: "pt" }];
-    const result = ensureTrailingPlaceholder(input, "single-per-lang");
-    expect(result).toHaveLength(3);
-    expect(result[2].lang).toBe("es");
+// ── usedLanguages ─────────────────────────────────────────────────────────
+
+describe("usedLanguages", () => {
+  it("lists the languages already carrying a value for single-per-lang", () => {
+    const values = [
+      { value: "Foo", lang: "en" },
+      { value: "Bar", lang: "PT" },
+      { value: "", lang: "es" },
+    ];
+    expect(usedLanguages(values, "single-per-lang")).toEqual(["en", "pt"]);
+  });
+
+  it("ignores rows whose value is only whitespace", () => {
+    expect(usedLanguages([{ value: "   ", lang: "en" }], "single-per-lang")).toEqual([]);
+  });
+
+  it("drops empty language tags", () => {
+    const values = [{ value: "Foo", lang: "" }, { value: "Bar", lang: "de" }];
+    expect(usedLanguages(values, "single-per-lang")).toEqual(["de"]);
+  });
+
+  it("excludes nothing for multiple — the picker stays unfiltered", () => {
+    const values = [{ value: "Foo", lang: "en" }, { value: "Bar", lang: "fr" }];
+    expect(usedLanguages(values, "multiple")).toEqual([]);
+  });
+
+  it("excludes nothing for single", () => {
+    expect(usedLanguages([{ value: "Foo", lang: "en" }], "single")).toEqual([]);
   });
 });
 

@@ -1,56 +1,59 @@
 import type { LocalizedString } from "@/lib/api/client";
 import type { AnnotationCardinality } from "./annotationProperties";
 
-/** Language tags to try in order when choosing a default lang for a new placeholder row. */
-const COMMON_LANGS = ["en", "pt", "es", "fr", "de", "it"];
-
 /**
  * Ensures that an array of localized strings has an appropriate trailing
  * placeholder row, respecting the annotation property's cardinality:
  *
- * - "multiple": always one trailing empty row (original behaviour).
- * - "single-per-lang": placeholder lang is the first common language not yet
- *   covered by a filled value; no placeholder when all common langs are filled.
- * - "single": no placeholder once any value is filled; one empty row when empty.
+ * - `"single"`: no placeholder once a value is filled; one empty row when empty.
+ * - `"single-per-lang"`: one trailing empty row, but with no preset language —
+ *   the user picks from a list that excludes the languages already present
+ *   (see {@link usedLanguages} and `LanguagePicker`'s `excludeCodes`). Only when
+ *   nothing is filled yet does the row default to `en`, since there is nothing
+ *   to collide with.
+ * - `"multiple"`: always one trailing empty row defaulting to `en`.
  */
 export function ensureTrailingPlaceholder(
   values: LocalizedString[],
   cardinality: AnnotationCardinality,
 ): LocalizedString[] {
-  switch (cardinality) {
-    case "single": {
-      const hasFilled = values.some((v) => v.value.trim() !== "");
-      if (hasFilled) return values.filter((v) => v.value.trim() !== "");
-      return [{ value: "", lang: "en" }];
-    }
+  const hasFilled = values.some((v) => v.value.trim() !== "");
 
-    case "single-per-lang": {
-      // Keep any existing trailing empty placeholder as-is.
+  switch (cardinality) {
+    case "single":
+      // At most one value: drop stray empty rows once something is filled.
+      return hasFilled ? values.filter((v) => v.value.trim() !== "") : [{ value: "", lang: "en" }];
+
+    case "single-per-lang":
       if (values.length > 0 && values[values.length - 1].value.trim() === "") return values;
-      // Append a placeholder whose lang is the first common language not yet
-      // covered by a filled value. This prevents offering a duplicate @en row
-      // when the annotation already has an English value (SKOS S14 / rdfs:label
-      // convention). If all common languages are already present, no placeholder.
-      const filledLangs = new Set(
-        values
-          .filter((v) => v.value.trim() !== "")
-          .map((v) => v.lang.trim().toLowerCase())
-          .filter(Boolean),
-      );
-      const nextLang = COMMON_LANGS.find((l) => !filledLangs.has(l));
-      if (nextLang === undefined) {
-        // All common languages are filled — add a blank row for a custom locale.
-        return [...values, { value: "", lang: "" }];
-      }
-      return [...values, { value: "", lang: nextLang }];
-    }
+      // Blank lang forces an explicit pick from the filtered picker, so the
+      // user can't silently re-use a language that already has a value.
+      return [...values, { value: "", lang: hasFilled ? "" : "en" }];
 
     case "multiple":
-    default: {
+    default:
       if (values.length === 0 || values[values.length - 1].value.trim() !== "") {
         return [...values, { value: "", lang: "en" }];
       }
       return values;
-    }
   }
+}
+
+/**
+ * Language tags already carrying a value in `values`, normalized to lowercase.
+ *
+ * Passed to `LanguagePicker`'s `excludeCodes` for `single-per-lang` annotations
+ * so the picker can't offer a language that would violate the cardinality
+ * constraint. Returns an empty array for other cardinalities — `multiple`
+ * annotations show the unfiltered language list.
+ */
+export function usedLanguages(
+  values: LocalizedString[],
+  cardinality: AnnotationCardinality,
+): string[] {
+  if (cardinality !== "single-per-lang") return [];
+  return values
+    .filter((v) => v.value.trim() !== "")
+    .map((v) => v.lang.trim().toLowerCase())
+    .filter(Boolean);
 }
