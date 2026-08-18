@@ -138,6 +138,7 @@
     "loadingMore": "Carregando...",
     "retryLoad": "Tentar Novamente",
     "count": "{count, plural, one {# projeto} other {# projetos}}",
-    "searchCount": "{count, plural, one {# resultado} other {# resultados}} para \"{query}\""
+    "searchCount": "{count, plural, one {# resultado} other {# resultados}} para \"{query}\"",
+    "ofTotal": "(de {total})"
   }
 }

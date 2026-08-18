@@ -241,7 +241,8 @@ export default function HomePage() {
                     : t("count", { count: total })}
                   {isFiltered && (
                     <span className="text-slate-400 dark:text-slate-500">
-                      {` (of ${unfilteredTotal})`}
+                      {" "}
+                      {t("ofTotal", { total: unfilteredTotal })}
                     </span>
                   )}
                 </div>

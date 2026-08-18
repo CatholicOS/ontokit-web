@@ -16,8 +16,8 @@
     "retrying": "Retrying..."
   },
   "auth": {
-    "signIn": "Sign In",
-    "signOut": "Sign Out",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
     "signInWith": "Sign in with {provider}",
     "userAvatar": "User avatar",
     "settings": "Settings"
@@ -138,6 +138,7 @@
     "loadingMore": "Loading...",
     "retryLoad": "Retry",
     "count": "{count, plural, one {# project} other {# projects}}",
-    "searchCount": "{count, plural, one {# result} other {# results}} for \"{query}\""
+    "searchCount": "{count, plural, one {# result} other {# results}} for \"{query}\"",
+    "ofTotal": "(of {total})"
   }
 }
