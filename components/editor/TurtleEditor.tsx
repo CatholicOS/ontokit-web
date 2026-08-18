@@ -10,6 +10,7 @@ import {
   commonProperties,
   TURTLE_LANGUAGE_ID,
 } from "@/lib/editor/languages/turtle";
+import { usePrefersDarkMode } from "@/lib/hooks/usePrefersDarkMode";
 
 // Configure Monaco to load from CDN for faster initial load
 loader.config({
@@ -98,24 +99,10 @@ export function TurtleEditor({
     hoverLabelCache = iriLabelMap ?? new Map();
   }, [iriLabelMap]);
 
-  // Detect system theme if not overridden
-  const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setSystemTheme(isDark ? "dark" : "light");
-
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = (e: MediaQueryListEvent) => {
-        setSystemTheme(e.matches ? "dark" : "light");
-      };
-      mediaQuery.addEventListener("change", handler);
-      return () => mediaQuery.removeEventListener("change", handler);
-    }
-  }, []);
-
-  const effectiveTheme = theme || systemTheme;
+  // Detect system theme if not overridden. matchMedia is an external store, so
+  // it is subscribed to directly rather than mirrored into state by an effect.
+  const prefersDark = usePrefersDarkMode();
+  const effectiveTheme = theme || (prefersDark ? "dark" : "light");
 
   // Register Turtle language before editor mounts
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
