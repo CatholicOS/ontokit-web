@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import { renderWithQueryClient as render } from "../../helpers/renderWithProviders";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/lib/api/quality", () => ({
@@ -120,7 +121,7 @@ describe("DeleteImpactAnalysis", () => {
     expect(onAcknowledge).toHaveBeenCalledWith(true);
   });
 
-  it("resets state when entityIri is null", () => {
+  it("renders nothing and stays silent when entityIri is null", () => {
     mockGetCrossReferences.mockResolvedValue({ target_iri: "http://example.org/A", total: 0, groups: [] });
     const { container } = render(
       <DeleteImpactAnalysis
@@ -130,6 +131,56 @@ describe("DeleteImpactAnalysis", () => {
       />
     );
     expect(container.textContent).toBe("");
-    expect(onAcknowledge).toHaveBeenCalledWith(false);
+    // The parent owns the delete gate now, so the component no longer pushes
+    // state upward on mount or on prop change.
+    expect(onAcknowledge).not.toHaveBeenCalled();
+    expect(mockGetCrossReferences).not.toHaveBeenCalled();
+  });
+
+  it("does not ask for acknowledgement when the entity has no references", async () => {
+    mockGetCrossReferences.mockResolvedValue({ target_iri: "http://example.org/A", total: 0, groups: [] });
+    const { container } = render(
+      <DeleteImpactAnalysis
+        projectId="p1"
+        entityIri="http://example.org/A"
+        onAcknowledge={onAcknowledge}
+      />
+    );
+    await waitFor(() => {
+      expect(container.querySelector(".animate-spin")).toBeNull();
+    });
+    // Regression guard: the old effect fired onAcknowledge(false) on mount and
+    // nothing ever set it back to true, so Delete stayed disabled for an
+    // unreferenced entity. Nothing should be reported for the zero-ref case.
+    expect(onAcknowledge).not.toHaveBeenCalled();
+  });
+
+  it("reports acknowledgement only from the checkbox", async () => {
+    mockGetCrossReferences.mockResolvedValue({
+      target_iri: "http://example.org/A",
+      total: 1,
+      groups: [
+        {
+          context: "parent_iris",
+          context_label: "Parent",
+          references: [{ source_iri: "http://example.org/B", source_label: "B", source_type: "class", reference_context: "parent_iris" }],
+        },
+      ],
+    });
+    render(
+      <DeleteImpactAnalysis
+        projectId="p1"
+        entityIri="http://example.org/A"
+        onAcknowledge={onAcknowledge}
+      />
+    );
+    await waitFor(() => expect(screen.getByRole("checkbox")).toBeDefined());
+    expect(onAcknowledge).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("checkbox"));
+    expect(onAcknowledge).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(screen.getByRole("checkbox"));
+    expect(onAcknowledge).toHaveBeenLastCalledWith(false);
   });
 });

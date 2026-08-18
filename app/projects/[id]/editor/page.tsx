@@ -39,6 +39,7 @@ import { KeyboardShortcutDialog } from "@/components/editor/KeyboardShortcutDial
 import { SuggestionSubmitDialog } from "@/components/editor/SuggestionSubmitDialog";
 import { useSuggestionSession } from "@/lib/hooks/useSuggestionSession";
 import { useSuggestionBeacon } from "@/lib/hooks/useSuggestionBeacon";
+import { useCrossReferences } from "@/lib/hooks/useCrossReferences";
 import { DeleteImpactAnalysis } from "@/components/editor/DeleteImpactAnalysis";
 import { RemoteSyncIndicator } from "@/components/editor/RemoteSyncIndicator";
 import { ShareButton } from "@/components/editor/ShareButton";
@@ -178,7 +179,22 @@ export default function EditorPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTargetIri, setDeleteTargetIri] = useState<string | null>(null);
   const [deleteTargetLabel, setDeleteTargetLabel] = useState<string>("");
-  const [deleteImpactAcknowledged, setDeleteImpactAcknowledged] = useState(true);
+  const [deleteImpactAcknowledged, setDeleteImpactAcknowledged] = useState(false);
+
+  // Delete gating. The impact check is read here as well as inside
+  // DeleteImpactAnalysis; React Query dedupes both observers onto one fetch.
+  // Deriving the gate here means the child never has to push state upward from
+  // an effect, and an entity with zero references is no longer blocked.
+  const deleteImpact = useCrossReferences(
+    projectId,
+    deleteDialogOpen ? deleteTargetIri : null,
+    session?.accessToken,
+    activeBranch,
+  );
+  const deleteNeedsAcknowledgement =
+    !!deleteTargetIri &&
+    deleteDialogOpen &&
+    (deleteImpact.isPending || deleteImpact.isError || (deleteImpact.data?.total ?? 0) > 0);
 
   // Toast
   const toast = useToast();
@@ -1205,16 +1221,17 @@ export default function EditorPage() {
         open={deleteDialogOpen}
         onOpenChange={(open) => {
           setDeleteDialogOpen(open);
-          if (!open) setDeleteImpactAcknowledged(true);
+          if (!open) setDeleteImpactAcknowledged(false);
         }}
         onConfirm={handleDeleteConfirm}
         title="Delete Class"
         description={`Are you sure you want to delete "${deleteTargetLabel}"? This action cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
-        confirmDisabled={!deleteImpactAcknowledged}
+        confirmDisabled={deleteNeedsAcknowledgement && !deleteImpactAcknowledged}
       >
         <DeleteImpactAnalysis
+          key={deleteTargetIri ?? "none"}
           projectId={projectId}
           entityIri={deleteTargetIri}
           accessToken={session?.accessToken}
