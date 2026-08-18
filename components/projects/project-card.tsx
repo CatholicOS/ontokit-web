@@ -30,8 +30,7 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
     ? `/projects/${project.id}/editor`
     : `/projects/${project.id}`;
 
-  const handleFavoriteClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleFavoriteClick = async () => {
     if (!accessToken || isToggling) return;
 
     // Optimistic update via parent — parent holds the source of truth
@@ -52,11 +51,15 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
   };
 
   return (
-    <Link
-      href={href}
-      aria-label={`Open project ${project.name}`}
+    // The card is a plain container, not a link: the favorite control is a
+    // <button>, and a <button> inside an <a> is invalid HTML that breaks
+    // keyboard and screen-reader behaviour. Instead the project title holds
+    // the link and stretches its ::after over the whole card, so the card
+    // stays fully clickable while the star sits above it on its own z-layer.
+    <div
+      data-testid="project-card"
       className={cn(
-        "block rounded-lg border border-slate-200 bg-white p-5 shadow-xs transition-all",
+        "relative rounded-lg border border-slate-200 bg-white p-5 shadow-xs transition-all",
         "hover:border-primary-300 hover:shadow-md",
         "dark:border-slate-700 dark:bg-slate-800 dark:hover:border-primary-600",
         className
@@ -65,7 +68,16 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {project.name}
+            <Link
+              href={href}
+              aria-label={`Open project ${project.name}`}
+              className={cn(
+                "after:absolute after:inset-0 after:rounded-lg after:content-['']",
+                "focus-visible:outline-hidden focus-visible:after:ring-2 focus-visible:after:ring-primary-500"
+              )}
+            >
+              {project.name}
+            </Link>
           </h3>
           {project.description && (
             <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
@@ -76,12 +88,14 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
         <div className="flex items-center gap-1.5 shrink-0">
           {accessToken && (
             <button
+              type="button"
               onClick={handleFavoriteClick}
               disabled={isToggling}
               aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
               aria-pressed={isFavorited}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                // z-10 keeps the star above the title link's stretched ::after
+                "relative z-10 flex h-8 w-8 items-center justify-center rounded-full transition-colors",
                 "hover:bg-amber-50 dark:hover:bg-amber-900/20",
                 isToggling && "opacity-50 cursor-not-allowed"
               )}
@@ -153,6 +167,6 @@ export function ProjectCard({ project, className, accessToken, onFavoriteChange 
           )}
         </div>
       )}
-    </Link>
+    </div>
   );
 }
