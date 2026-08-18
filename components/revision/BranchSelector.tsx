@@ -240,7 +240,7 @@ export function BranchSelector({
                   aria-selected={branch.name === currentBranch}
                   tabIndex={0}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     {branch.name === currentBranch ? (
                       <Check className="h-4 w-4 text-primary-600" />
                     ) : (
@@ -254,7 +254,7 @@ export function BranchSelector({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {branch.commit_hash && (
                       <code className="font-mono text-xs text-slate-400 dark:text-slate-500">
                         {branch.commit_hash.slice(0, 7)}
