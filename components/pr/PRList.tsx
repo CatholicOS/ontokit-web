@@ -16,6 +16,12 @@ interface PRListProps {
   accessToken?: string;
   defaultStatus?: PRStatus | "all";
   mode?: EditorMode;
+  /**
+   * Restrict the list to one author. Reviewers (owner/admin) leave this unset
+   * to see everyone's; everyone else passes their own id so a list titled
+   * "My Suggestions" / "My Pull Requests" actually only contains theirs.
+   */
+  authorId?: string;
   className?: string;
 }
 
@@ -24,6 +30,7 @@ export function PRList({
   accessToken,
   defaultStatus = "open",
   mode = "developer",
+  authorId,
   className,
 }: PRListProps) {
   const isSuggestionMode = mode === "standard";
@@ -47,7 +54,7 @@ export function PRList({
         projectId,
         accessToken,
         status,
-        undefined,
+        authorId,
         skip,
         limit
       );
@@ -60,7 +67,7 @@ export function PRList({
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, accessToken, statusFilter, skip]);
+  }, [projectId, accessToken, statusFilter, authorId, skip]);
 
   useEffect(() => {
     loadPRs();
@@ -70,6 +77,35 @@ export function PRList({
     setStatusFilter(newStatus);
     setSkip(0);
   };
+
+  // The list is either scoped to the signed-in user (authorId set) or shows the
+  // whole project, so the empty state has to speak in the matching voice —
+  // "You have no…" vs "There are no…".
+  const isScopedToViewer = !!authorId;
+  const noun = isSuggestionMode ? "suggestion" : "pull request";
+  const emptyStateMessage = (() => {
+    if (statusFilter === "open") {
+      return isScopedToViewer
+        ? `You have no open ${noun}s.`
+        : `There are no open ${noun}s for this project.`;
+    }
+    if (statusFilter === "merged") {
+      const verb = isSuggestionMode ? "accepted" : "merged";
+      return isScopedToViewer
+        ? `None of your ${noun}s have been ${verb} yet.`
+        : `No ${noun}s have been ${verb} yet.`;
+    }
+    if (statusFilter === "closed") {
+      const verb = isSuggestionMode ? "rejected" : "closed";
+      return isScopedToViewer
+        ? `None of your ${noun}s have been ${verb}.`
+        : `No ${noun}s have been ${verb}.`;
+    }
+    const verb = isSuggestionMode ? "submitted" : "created";
+    return isScopedToViewer
+      ? `You have not ${verb} any ${noun}s yet.`
+      : `No ${noun}s have been ${verb} for this project.`;
+  })();
 
   const statusTabs: { value: PRStatus | "all"; label: string }[] = [
     { value: "open", label: "Open" },
@@ -100,7 +136,7 @@ export function PRList({
         </div>
 
         <span className="text-sm text-slate-500">
-          {total} {isSuggestionMode ? (total !== 1 ? "suggestions" : "suggestion") : (total !== 1 ? "pull requests" : "pull request")}
+          {total} {total === 1 ? noun : `${noun}s`}
         </span>
       </div>
 
@@ -119,23 +155,7 @@ export function PRList({
           <h3 className="mt-4 font-medium text-slate-900 dark:text-slate-100">
             {isSuggestionMode ? "No suggestions" : "No pull requests"}
           </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            {isSuggestionMode
-              ? statusFilter === "open"
-                ? "There are no open suggestions for this project."
-                : statusFilter === "merged"
-                ? "No suggestions have been accepted yet."
-                : statusFilter === "closed"
-                ? "No suggestions have been rejected."
-                : "No suggestions have been submitted for this project."
-              : statusFilter === "open"
-              ? "There are no open pull requests for this project."
-              : statusFilter === "merged"
-              ? "No pull requests have been merged yet."
-              : statusFilter === "closed"
-              ? "No pull requests have been closed."
-              : "No pull requests have been created for this project."}
-          </p>
+          <p className="mt-1 text-sm text-slate-500">{emptyStateMessage}</p>
         </div>
       ) : (
         <>
