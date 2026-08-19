@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/pullRequests";
 import { PRListItem } from "./PRListItem";
 import { cn } from "@/lib/utils";
-import { GitPullRequest } from "lucide-react";
+import { GitPullRequest, Lightbulb } from "lucide-react";
 import type { EditorMode } from "@/lib/stores/editorModeStore";
 
 interface PRListProps {
@@ -42,35 +42,53 @@ export function PRList({
   const [skip, setSkip] = useState(0);
   const limit = 20;
 
-  const loadPRs = useCallback(async () => {
-    if (!projectId) return;
+  // A reviewer on page 3 who switches to their own (much shorter) list would
+  // otherwise keep the stale offset and land on an empty page.
+  const [scopeKey, setScopeKey] = useState(authorId);
+  if (scopeKey !== authorId) {
+    setScopeKey(authorId);
+    setSkip(0);
+  }
 
-    setIsLoading(true);
-    setError(null);
+  const loadPRs = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      if (!projectId) return;
 
-    try {
-      const status = statusFilter === "all" ? undefined : statusFilter;
-      const response = await pullRequestsApi.list(
-        projectId,
-        accessToken,
-        status,
-        authorId,
-        skip,
-        limit
-      );
-      setPrs(response.items);
-      setTotal(response.total);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load pull requests";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectId, accessToken, statusFilter, authorId, skip]);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const status = statusFilter === "all" ? undefined : statusFilter;
+        const response = await pullRequestsApi.list(
+          projectId,
+          accessToken,
+          status,
+          authorId,
+          skip,
+          limit
+        );
+        // A slower request for a previous scope must not overwrite the newer one.
+        if (signal?.cancelled) return;
+        setPrs(response.items);
+        setTotal(response.total);
+      } catch (err) {
+        if (signal?.cancelled) return;
+        const message =
+          err instanceof Error ? err.message : "Failed to load pull requests";
+        setError(message);
+      } finally {
+        if (!signal?.cancelled) setIsLoading(false);
+      }
+    },
+    [projectId, accessToken, statusFilter, authorId, skip]
+  );
 
   useEffect(() => {
-    loadPRs();
+    const signal = { cancelled: false };
+    loadPRs(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadPRs]);
 
   const handleStatusChange = (newStatus: PRStatus | "all") => {
@@ -151,7 +169,11 @@ export function PRList({
         </div>
       ) : prs.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-12 text-center dark:border-slate-700 dark:bg-slate-800/50">
-          <GitPullRequest className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+          {isSuggestionMode ? (
+            <Lightbulb className="mx-auto h-12 w-12 text-amber-300 dark:text-amber-600/60" />
+          ) : (
+            <GitPullRequest className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+          )}
           <h3 className="mt-4 font-medium text-slate-900 dark:text-slate-100">
             {isSuggestionMode ? "No suggestions" : "No pull requests"}
           </h3>

@@ -19,6 +19,7 @@ vi.mock("@/components/ui/button", () => ({
 
 vi.mock("lucide-react", () => ({
   GitPullRequest: () => <span data-testid="icon-git-pr" />,
+  Lightbulb: () => <span data-testid="icon-lightbulb" />,
 }));
 
 // Mock PRListItem
@@ -452,5 +453,44 @@ describe("PRList", () => {
         20
       );
     });
+  });
+
+  // ── Mode-aware empty-state icon ─────────────────────────────────
+  it("uses the lightbulb icon in the standard-mode empty state", async () => {
+    mockList.mockResolvedValue(makeListResponse([], 0));
+    await act(async () => {
+      render(<PRList projectId="proj-1" mode="standard" />);
+    });
+    expect(screen.getByTestId("icon-lightbulb")).toBeDefined();
+    expect(screen.queryByTestId("icon-git-pr")).toBeNull();
+  });
+
+  it("keeps the pull-request icon in the developer-mode empty state", async () => {
+    mockList.mockResolvedValue(makeListResponse([], 0));
+    await act(async () => {
+      render(<PRList projectId="proj-1" mode="developer" />);
+    });
+    expect(screen.getByTestId("icon-git-pr")).toBeDefined();
+    expect(screen.queryByTestId("icon-lightbulb")).toBeNull();
+  });
+
+  it("resets pagination when the author scope changes", async () => {
+    mockList.mockResolvedValue(makeListResponse([makePR()], 40));
+    const { rerender } = render(<PRList projectId="proj-1" />);
+    await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Next"));
+    });
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith("proj-1", undefined, "open", undefined, 20, 20)
+    );
+
+    await act(async () => {
+      rerender(<PRList projectId="proj-1" authorId="user-42" />);
+    });
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith("proj-1", undefined, "open", "user-42", 0, 20)
+    );
   });
 });

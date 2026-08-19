@@ -164,7 +164,8 @@ export function PRActions({
       <div className={cn("space-y-4", className)}>
         <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-900/20">
           <p className="mb-3 text-sm text-green-800 dark:text-green-200">
-            This pull request was merged into <strong>{pr.target_branch}</strong>.
+            {isSuggestionMode ? "This suggestion was accepted into " : "This pull request was merged into "}
+            <strong>{pr.target_branch}</strong>.
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -256,7 +257,7 @@ export function PRActions({
           open={showReopenDialog}
           onOpenChange={setShowReopenDialog}
           onConfirm={handleReopen}
-          title="Reopen Pull Request"
+          title={isSuggestionMode ? "Reopen Suggestion" : "Reopen Pull Request"}
           description={`Are you sure you want to reopen "${pr.title}"?`}
           confirmLabel="Reopen"
           variant="default"
@@ -354,7 +355,9 @@ export function PRActions({
               className="gap-1"
               title={
                 !pr.can_merge
-                  ? "Cannot merge: approval requirements not met"
+                  ? isSuggestionMode
+                    ? "Cannot accept: approval requirements not met"
+                    : "Cannot merge: approval requirements not met"
                   : undefined
               }
             >
@@ -401,7 +404,8 @@ export function PRActions({
             className="h-4 w-4 rounded-sm border-slate-300 text-primary-600 focus:ring-primary-500"
           />
           <span className="text-sm text-slate-700 dark:text-slate-300">
-            Delete source branch &ldquo;{pr.source_branch}&rdquo; after merging
+            Delete source branch &ldquo;{pr.source_branch}&rdquo; after{" "}
+            {isSuggestionMode ? "accepting" : "merging"}
           </span>
         </label>
       </ConfirmDialog>
@@ -422,7 +426,9 @@ export function PRActions({
       {/* Merge status */}
       {!pr.can_merge && canMerge && (
         <p className="text-sm text-amber-600 dark:text-amber-400">
-          This pull request requires additional approvals before it can be merged.
+          {isSuggestionMode
+            ? "This suggestion requires additional approvals before it can be accepted."
+            : "This pull request requires additional approvals before it can be merged."}{" "}
           Current: {pr.approval_count} approvals
         </p>
       )}

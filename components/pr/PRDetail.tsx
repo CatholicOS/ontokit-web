@@ -53,6 +53,7 @@ export function PRDetail({
   mode = "developer",
   className,
 }: PRDetailProps) {
+  const isSuggestionMode = mode === "standard";
   const [pr, setPR] = useState<PullRequest | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -207,13 +208,13 @@ export function PRDetail({
       case "merged":
         return (
           <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-            Merged
+            {isSuggestionMode ? "Accepted" : "Merged"}
           </span>
         );
       case "closed":
         return (
           <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-            Closed
+            {isSuggestionMode ? "Rejected" : "Closed"}
           </span>
         );
       default:
@@ -270,7 +271,7 @@ export function PRDetail({
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
               {pr.status === "merged" && pr.merged_at
-                ? `merged ${formatDate(pr.merged_at)}`
+                ? `${isSuggestionMode ? "accepted" : "merged"} ${formatDate(pr.merged_at)}`
                 : `opened ${formatDate(pr.created_at)}`}
             </span>
             {pr.github_pr_url && (
