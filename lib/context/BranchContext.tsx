@@ -103,54 +103,55 @@ export function BranchProvider({
     : null;
 
   // Local state (not from server)
-  const [currentBranch, setCurrentBranch] = useState<string>(
-    () => initialBranch || getStoredBranch(projectId) || "main"
-  );
   const [pendingChanges, setPendingChanges] = useState(false);
+
+  /** The branch the visitor has explicitly switched to during this session. */
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  /** sessionStorage pin, read once — the provider is mounted per project. */
+  const [storedBranch] = useState<string | null>(() => getStoredBranch(projectId));
+
+  // `currentBranch` is server-derived, so it is computed during render rather
+  // than mirrored into state by effects reacting to the query resolving.
+  const currentBranch = useMemo(() => {
+    // Unauthenticated visitors are locked to the default branch
+    if (response && !accessToken) {
+      return response.default_branch ?? response.current_branch;
+    }
+
+    // An explicit switch is authoritative and deliberately not re-validated
+    // against the cached list: `switchBranch` already checks the branch exists,
+    // and `createBranch` selects one the server has just created but which the
+    // cached list may not include until the refetch lands.
+    if (selectedBranch) return selectedBranch;
+
+    // Seeds are only *suggestions* — a sessionStorage pin or a resume link can
+    // name a branch that has since been deleted, so those are validated.
+    const seed = initialBranch ?? storedBranch ?? null;
+    if (!response) return seed ?? "main";
+    if (seed && response.items.some((b) => b.name === seed)) return seed;
+
+    const prefExists =
+      response.preferred_branch &&
+      response.items.some((b) => b.name === response.preferred_branch);
+    return prefExists ? response.preferred_branch! : response.current_branch;
+  }, [response, accessToken, selectedBranch, initialBranch, storedBranch]);
 
   const isFeatureBranch = currentBranch !== defaultBranch;
 
-  // Validate current branch when server data arrives
+  // Drop a sessionStorage pin naming a branch the server no longer lists. This
+  // only synchronises the external store; the value above is already derived
+  // without it.
   useEffect(() => {
-    if (!response) return;
-    setCurrentBranch((prev) => {
-      // Unauthenticated users are locked to the default branch
-      if (!accessToken) return response.default_branch ?? response.current_branch;
-
-      const prevExists = response.items.some((b) => b.name === prev);
-      if (prevExists) return prev;
-      // Stored/initial branch was deleted — clear stale sessionStorage
+    if (!response || !accessToken) return;
+    const pinned = getStoredBranch(projectId);
+    if (pinned && !response.items.some((b) => b.name === pinned)) {
       try {
         sessionStorage.removeItem(`ontokit:branch:${projectId}`);
       } catch {
         /* ignore */
       }
-      const prefExists =
-        response.preferred_branch &&
-        response.items.some((b) => b.name === response.preferred_branch);
-      return prefExists
-        ? response.preferred_branch!
-        : response.current_branch;
-    });
-  }, [response, projectId, accessToken]);
-
-  // Set initial branch if specified and different from current (authenticated only)
-  const [initialBranchHandled, setInitialBranchHandled] = useState(false);
-  useEffect(() => {
-    if (
-      accessToken &&
-      initialBranch &&
-      !initialBranchHandled &&
-      !isLoading &&
-      branches.length > 0
-    ) {
-      const branchExists = branches.some((b) => b.name === initialBranch);
-      if (branchExists && initialBranch !== currentBranch) {
-        setCurrentBranch(initialBranch);
-      }
-      setInitialBranchHandled(true);
     }
-  }, [accessToken, initialBranch, initialBranchHandled, isLoading, branches, currentBranch]);
+  }, [response, accessToken, projectId]);
 
   const refreshBranches = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -174,7 +175,7 @@ export function BranchProvider({
       await refreshBranches();
 
       // Switch to the new branch directly
-      setCurrentBranch(name);
+      setSelectedBranch(name);
       setStoredBranch(projectId, name);
       branchesApi.savePreference(projectId, name, accessToken).catch(() => {});
 
@@ -201,7 +202,7 @@ export function BranchProvider({
         throw new Error(`Branch not found: ${name}`);
       }
 
-      setCurrentBranch(name);
+      setSelectedBranch(name);
       setStoredBranch(projectId, name);
 
       // Fire-and-forget: persist to DB for cross-session restore

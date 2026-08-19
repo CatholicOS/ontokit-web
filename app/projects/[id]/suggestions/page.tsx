@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -21,11 +20,8 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/lib/hooks/useProject";
 import { useProjectHomeHref } from "@/lib/hooks/useProjectHomeHref";
-import {
-  suggestionsApi,
-  type SuggestionSessionSummary,
-  type SuggestionSessionStatus,
-} from "@/lib/api/suggestions";
+import { useSuggestionSessions } from "@/lib/hooks/useSuggestionSessions";
+import { type SuggestionSessionStatus } from "@/lib/api/suggestions";
 import { cn } from "@/lib/utils";
 
 const statusConfig: Record<
@@ -76,22 +72,11 @@ export default function SuggestionsPage() {
 
   const { project, isLoading: isProjectLoading, error: projectError } = useProject(projectId, session?.accessToken);
   const projectHomeHref = useProjectHomeHref(projectId);
-  const [sessions, setSessions] = useState<SuggestionSessionSummary[]>([]);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!session?.accessToken || !projectId) {
-      setIsLoadingSessions(false);
-      return;
-    }
-    setIsLoadingSessions(true);
-    setSessionsError(null);
-    suggestionsApi.listSessions(projectId, session.accessToken)
-      .then((res) => setSessions(res.items))
-      .catch((err) => { setSessionsError(err instanceof Error ? err.message : "Failed to load suggestions"); })
-      .finally(() => setIsLoadingSessions(false));
-  }, [projectId, session?.accessToken]);
+  const {
+    sessions,
+    isLoading: isLoadingSessions,
+    error: sessionsError,
+  } = useSuggestionSessions(projectId, session?.accessToken);
 
   const isLoading = isProjectLoading || isLoadingSessions;
   const error = projectError || sessionsError;

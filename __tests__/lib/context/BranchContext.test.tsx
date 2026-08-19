@@ -80,6 +80,114 @@ describe("BranchContext", () => {
     sessionStorage.clear();
   });
 
+  // ── Branch resolution ──
+  //
+  // Characterisation tests for how `currentBranch` is settled once the server
+  // list arrives: which seed wins, what happens when it no longer exists, and
+  // how unauthenticated visitors are pinned. These lock the behaviour so the
+  // resolution can be refactored from effects into a derivation safely.
+
+  describe("branch resolution", () => {
+    it("keeps the initialBranch when the server confirms it exists", async () => {
+      mockedList.mockResolvedValue(
+        makeListResponse([makeBranch("main"), makeBranch("feature-1")])
+      );
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok", initialBranch: "feature-1" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.currentBranch).toBe("feature-1");
+    });
+
+    it("keeps a sessionStorage-pinned branch when it still exists", async () => {
+      sessionStorage.setItem("ontokit:branch:p1", "feature-1");
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.currentBranch).toBe("feature-1");
+    });
+
+    it("falls back to preferred_branch when the pinned branch is gone", async () => {
+      sessionStorage.setItem("ontokit:branch:p1", "deleted-branch");
+      mockedList.mockResolvedValue(
+        makeListResponse([makeBranch("main"), makeBranch("feature-2")], {
+          preferred_branch: "feature-2",
+          current_branch: "main",
+        })
+      );
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+
+      await waitFor(() => expect(result.current.currentBranch).toBe("feature-2"));
+      // and the stale pin is cleared
+      expect(sessionStorage.getItem("ontokit:branch:p1")).toBeNull();
+    });
+
+    it("falls back to current_branch when the pinned branch is gone and there is no preference", async () => {
+      sessionStorage.setItem("ontokit:branch:p1", "deleted-branch");
+      mockedList.mockResolvedValue(
+        makeListResponse([makeBranch("main")], { current_branch: "main", preferred_branch: null })
+      );
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+
+      await waitFor(() => expect(result.current.currentBranch).toBe("main"));
+    });
+
+    it("ignores preferred_branch when it does not exist in the list", async () => {
+      sessionStorage.setItem("ontokit:branch:p1", "deleted-branch");
+      mockedList.mockResolvedValue(
+        makeListResponse([makeBranch("main")], {
+          preferred_branch: "also-deleted",
+          current_branch: "main",
+        })
+      );
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+
+      await waitFor(() => expect(result.current.currentBranch).toBe("main"));
+    });
+
+    it("pins unauthenticated visitors to the default branch, ignoring any seed", async () => {
+      sessionStorage.setItem("ontokit:branch:p1", "feature-1");
+      mockedList.mockResolvedValue(
+        makeListResponse([makeBranch("main"), makeBranch("feature-1")], {
+          default_branch: "main",
+          current_branch: "feature-1",
+        })
+      );
+      const wrapper = createWrapper({ projectId: "p1", initialBranch: "feature-1" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.currentBranch).toBe("main");
+    });
+
+    it("keeps the user's switch after a later refetch", async () => {
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok", initialBranch: "main" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await result.current.switchBranch("feature-1");
+      });
+      expect(result.current.currentBranch).toBe("feature-1");
+
+      // A refresh must not drag the branch back to the initialBranch seed.
+      await act(async () => {
+        await result.current.refreshBranches();
+      });
+      await waitFor(() => expect(result.current.currentBranch).toBe("feature-1"));
+    });
+
+    it("defaults to main before the server responds", () => {
+      const wrapper = createWrapper({ projectId: "p1", accessToken: "tok" });
+      const { result } = renderHook(() => useBranch(), { wrapper });
+      expect(result.current.currentBranch).toBe("main");
+    });
+  });
+
   it("throws when useBranch is used outside BranchProvider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => renderHook(() => useBranch())).toThrow(
