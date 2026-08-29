@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 export type EditorMode = "standard" | "developer";
 export type ThemePreference = "light" | "dark" | "system";
+export type GraphEdgeStyle = "bezier" | "smoothstep";
 
 interface EditorModeState {
   editorMode: EditorMode;
@@ -10,10 +11,12 @@ interface EditorModeState {
   hideSaveButton: boolean;
   /** When true, opening an entity in the editor auto-enters edit mode (no extra "Edit Item" click). */
   preferEditMode: boolean;
+  graphEdgeStyle: GraphEdgeStyle;
   setEditorMode: (mode: EditorMode) => void;
   setTheme: (theme: ThemePreference) => void;
   setHideSaveButton: (on: boolean) => void;
   setPreferEditMode: (on: boolean) => void;
+  setGraphEdgeStyle: (style: GraphEdgeStyle) => void;
 }
 
 /**
@@ -42,6 +45,7 @@ export const useEditorModeStore = create<EditorModeState>()(
       theme: "system",
       hideSaveButton: false,
       preferEditMode: false,
+      graphEdgeStyle: "smoothstep",
 
       setEditorMode: (mode) => set({ editorMode: mode }),
 
@@ -53,6 +57,8 @@ export const useEditorModeStore = create<EditorModeState>()(
       setHideSaveButton: (on) => set({ hideSaveButton: on }),
 
       setPreferEditMode: (on) => set({ preferEditMode: on }),
+
+      setGraphEdgeStyle: (style) => set({ graphEdgeStyle: style }),
     }),
     {
       name: "ontokit-editor-preferences",

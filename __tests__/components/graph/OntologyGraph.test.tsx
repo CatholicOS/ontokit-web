@@ -1,23 +1,78 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import type { EntityGraphResponse } from "@/lib/api/graph";
+
+// editorModeStore subscribes to matchMedia at module load — provide a stub
+// before the toggle button (and its store dependency) are imported.
+vi.hoisted(() => {
+  (globalThis as Record<string, unknown>).matchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  });
+  if (
+    !globalThis.localStorage ||
+    typeof globalThis.localStorage.setItem !== "function"
+  ) {
+    const store = new Map<string, string>();
+    (globalThis as Record<string, unknown>).localStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+      clear: () => store.clear(),
+      get length() {
+        return store.size;
+      },
+      key: (index: number) => [...store.keys()][index] ?? null,
+    };
+  }
+});
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
 const mockUseGraphData = vi.fn();
+const mockRunLayout = vi.fn().mockResolvedValue(undefined);
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+let capturedReactFlowProps: Record<string, any> = {};
 vi.mock("@xyflow/react", () => ({
-  ReactFlow: ({ children, nodes }: { children?: React.ReactNode; nodes?: unknown[] }) => (
-    <div data-testid="react-flow" data-node-count={nodes?.length}>
-      {children}
-    </div>
-  ),
-  MiniMap: () => <div data-testid="minimap" />,
+  ReactFlow: (props: Record<string, any>) => {
+    capturedReactFlowProps = props;
+    return (
+      <div data-testid="react-flow" data-node-count={props.nodes?.length}>
+        {props.children}
+      </div>
+    );
+  },
+  MiniMap: (props: Record<string, any>) => {
+    const nodeColorFn = props.nodeColor;
+    return (
+      <div data-testid="minimap">
+        {nodeColorFn && (
+          <span data-testid="minimap-colors">
+            {JSON.stringify({
+              focus: nodeColorFn({ data: { nodeType: "focus" } }),
+              root: nodeColorFn({ data: { nodeType: "root" } }),
+              secondary_root: nodeColorFn({ data: { nodeType: "secondary_root" } }),
+              property: nodeColorFn({ data: { nodeType: "property" } }),
+              individual: nodeColorFn({ data: { nodeType: "individual" } }),
+              external: nodeColorFn({ data: { nodeType: "external" } }),
+              other: nodeColorFn({ data: { nodeType: "class" } }),
+            })}
+          </span>
+        )}
+      </div>
+    );
+  },
   Controls: ({ children }: { children?: React.ReactNode }) => <div data-testid="controls">{children}</div>,
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },
   useNodesState: (initial: unknown[]) => [initial || [], vi.fn(), vi.fn()],
   useEdgesState: (initial: unknown[]) => [initial || [], vi.fn(), vi.fn()],
+  ReactFlowProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  useReactFlow: () => ({ setCenter: vi.fn() }),
 }));
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 vi.mock("@xyflow/react/dist/style.css", () => ({}));
 
@@ -25,8 +80,15 @@ vi.mock("@/lib/hooks/useGraphData", () => ({
   useGraphData: (...args: unknown[]) => mockUseGraphData(...args),
 }));
 
-vi.mock("@/lib/graph/elkLayout", () => ({
-  computeLayout: vi.fn().mockResolvedValue(new Map()),
+let mockIsLayouting = false;
+vi.mock("@/lib/graph/useELKLayout", () => ({
+  useELKLayout: () => ({
+    nodes: [],
+    edges: [],
+    get isLayouting() { return mockIsLayouting; },
+    runLayout: mockRunLayout,
+    setNodeHandlers: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/graph/OntologyNode", () => ({
@@ -46,19 +108,25 @@ import { OntologyGraph } from "@/components/graph/OntologyGraph";
 
 // ── Fixtures ───────────────────────────────────────────────────────
 
-const mockGraphData = {
+const mockGraphData: EntityGraphResponse = {
+  focus_iri: "iri:Class1",
+  focus_label: "Class1",
   nodes: [
-    { id: "iri:Class1", label: "Class1", nodeType: "focus" as const, deprecated: false, childCount: 2, isExpanded: true },
-    { id: "iri:Class2", label: "Class2", nodeType: "class" as const, deprecated: false, childCount: 0, isExpanded: false },
+    { id: "iri:Class1", label: "Class1", iri: "iri:Class1", definition: null, is_focus: true, is_root: false, depth: 0, node_type: "focus", child_count: 2 },
+    { id: "iri:Class2", label: "Class2", iri: "iri:Class2", definition: null, is_focus: false, is_root: false, depth: 1, node_type: "class", child_count: 0 },
   ],
   edges: [
-    { id: "e1", source: "iri:Class1", target: "iri:Class2", edgeType: "subClassOf" as const },
+    { id: "e1", source: "iri:Class1", target: "iri:Class2", edge_type: "subClassOf", label: null },
   ],
+  truncated: false,
+  total_concept_count: 2,
 };
 
 const defaultReturn = {
   graphData: mockGraphData,
   isLoading: false,
+  showAllDescendants: false,
+  setShowAllDescendants: vi.fn(),
   expandNode: vi.fn(),
   resetGraph: vi.fn(),
   resolvedCount: 2,
@@ -67,7 +135,6 @@ const defaultReturn = {
 const defaultProps = {
   focusIri: "iri:Class1",
   projectId: "proj-1",
-  accessToken: "tok",
   branch: "main",
   onNavigateToClass: vi.fn(),
 };
@@ -77,6 +144,7 @@ const defaultProps = {
 describe("OntologyGraph", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsLayouting = false;
     mockUseGraphData.mockReturnValue(defaultReturn);
   });
 
@@ -124,11 +192,12 @@ describe("OntologyGraph", () => {
 
   // --- No relationships state ---
 
-  it("shows no-relationships message when single node and no edges", () => {
+  it("shows no-relationships message when graphData has no nodes and no edges", () => {
     mockUseGraphData.mockReturnValue({
       ...defaultReturn,
       graphData: {
-        nodes: [{ id: "iri:Class1", label: "Class1", nodeType: "focus", deprecated: false, childCount: 0, isExpanded: false }],
+        ...mockGraphData,
+        nodes: [],
         edges: [],
       },
     });
@@ -143,17 +212,6 @@ describe("OntologyGraph", () => {
   it("shows node and edge counts", () => {
     render(<OntologyGraph {...defaultProps} />);
     expect(screen.getByText(/2 nodes, 1 edges/)).toBeDefined();
-  });
-
-  it("shows resolved count when > 0", () => {
-    render(<OntologyGraph {...defaultProps} />);
-    expect(screen.getByText(/2 resolved/)).toBeDefined();
-  });
-
-  it("does not show resolved count when 0", () => {
-    mockUseGraphData.mockReturnValue({ ...defaultReturn, resolvedCount: 0 });
-    render(<OntologyGraph {...defaultProps} />);
-    expect(screen.queryByText(/resolved/)).toBeNull();
   });
 
   // --- Layout direction toggle ---
@@ -188,17 +246,10 @@ describe("OntologyGraph", () => {
     expect(defaultReturn.resetGraph).toHaveBeenCalledTimes(1);
   });
 
-  // --- Fit view button ---
-
-  it("renders Fit view button inside controls", () => {
-    render(<OntologyGraph {...defaultProps} />);
-    expect(screen.getByLabelText("Fit view")).toBeDefined();
-  });
-
   // --- Null graphData ---
 
   it("renders without crashing when graphData is null", () => {
-    mockUseGraphData.mockReturnValue({ ...defaultReturn, graphData: null });
+    mockUseGraphData.mockReturnValue({ ...defaultReturn, graphData: null, resolvedCount: 0 });
     render(<OntologyGraph {...defaultProps} />);
     expect(screen.getByTestId("react-flow")).toBeDefined();
     expect(screen.getByText(/0 nodes, 0 edges/)).toBeDefined();
@@ -207,15 +258,137 @@ describe("OntologyGraph", () => {
   // --- Passes correct options to useGraphData ---
 
   it("passes correct options to useGraphData", () => {
-    render(<OntologyGraph {...defaultProps} />);
+    render(<OntologyGraph {...defaultProps} accessToken="test-token-123" />);
     expect(mockUseGraphData).toHaveBeenCalledWith(
       expect.objectContaining({
         focusIri: "iri:Class1",
         projectId: "proj-1",
-        accessToken: "tok",
         branch: "main",
+        accessToken: "test-token-123",
       })
     );
+  });
+
+  // --- Show Descendants button ---
+
+  it("shows Show Descendants button", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    expect(screen.getByLabelText("Show all descendants")).toBeDefined();
+  });
+
+  // --- Truncation badge ---
+
+  it("shows truncation badge when graphData is truncated", () => {
+    mockUseGraphData.mockReturnValue({
+      ...defaultReturn,
+      graphData: { ...mockGraphData, truncated: true, total_concept_count: 200 },
+    });
+    render(<OntologyGraph {...defaultProps} />);
+    expect(screen.getByText(/Truncated/)).toBeDefined();
+  });
+
+  // --- Show Descendants toggle ---
+
+  it("calls setShowAllDescendants when descendants button is clicked", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    fireEvent.click(screen.getByLabelText("Show all descendants"));
+    expect(defaultReturn.setShowAllDescendants).toHaveBeenCalledWith(true);
+  });
+
+  it("shows 'All Descendants' when showAllDescendants is true", () => {
+    mockUseGraphData.mockReturnValue({ ...defaultReturn, showAllDescendants: true });
+    render(<OntologyGraph {...defaultProps} />);
+    expect(screen.getByText("All Descendants")).toBeDefined();
+    expect(screen.getByLabelText("Show one level of descendants")).toBeDefined();
+  });
+
+  // --- isLayouting spinner ---
+
+  it("shows 'Computing layout...' when isLayouting is true", () => {
+    mockIsLayouting = true;
+    render(<OntologyGraph {...defaultProps} />);
+    expect(screen.getByText("Computing layout...")).toBeDefined();
+  });
+
+  it("does not show 'Computing layout...' when isLayouting is false", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    expect(screen.queryByText("Computing layout...")).toBeNull();
+  });
+
+  // --- Node click callback ---
+
+  it("calls expandNode after click delay when a node is clicked", () => {
+    vi.useFakeTimers();
+    render(<OntologyGraph {...defaultProps} />);
+    const onNodeClick = capturedReactFlowProps.onNodeClick;
+    expect(onNodeClick).toBeDefined();
+
+    onNodeClick({} as React.MouseEvent, { id: "iri:Class2" });
+    // expandNode is delayed to distinguish from double-click
+    expect(defaultReturn.expandNode).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(200);
+    expect(defaultReturn.expandNode).toHaveBeenCalledWith("iri:Class2");
+    vi.useRealTimers();
+  });
+
+  it("cancels expand when double-click follows single click", () => {
+    vi.useFakeTimers();
+    render(<OntologyGraph {...defaultProps} />);
+    const onNodeClick = capturedReactFlowProps.onNodeClick;
+    const onNodeDoubleClick = capturedReactFlowProps.onNodeDoubleClick;
+
+    // Single click, then double-click before timer fires
+    onNodeClick({} as React.MouseEvent, { id: "iri:Class1" });
+    onNodeDoubleClick({} as React.MouseEvent, { id: "iri:Class1" });
+    vi.advanceTimersByTime(200);
+
+    expect(defaultReturn.expandNode).not.toHaveBeenCalled();
+    expect(defaultProps.onNavigateToClass).toHaveBeenCalledWith("iri:Class1");
+    vi.useRealTimers();
+  });
+
+  // --- Node double-click callback ---
+
+  it("calls onNavigateToClass on node double-click", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    const onNodeDoubleClick = capturedReactFlowProps.onNodeDoubleClick;
+    expect(onNodeDoubleClick).toBeDefined();
+
+    onNodeDoubleClick({} as React.MouseEvent, { id: "iri:Class2" });
+    expect(defaultProps.onNavigateToClass).toHaveBeenCalledWith("iri:Class2");
+  });
+
+  // --- MiniMap nodeColor function ---
+
+  it("returns correct colors for each node type in MiniMap", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    const colorsEl = screen.getByTestId("minimap-colors");
+    const colors = JSON.parse(colorsEl.textContent!);
+    expect(colors.focus).toBe("#3b82f6");
+    expect(colors.root).toBe("#ef4444");
+    expect(colors.secondary_root).toBe("#64748b");
+    expect(colors.property).toBe("#93c5fd");
+    expect(colors.individual).toBe("#f9a8d4");
+    expect(colors.external).toBe("#e2e8f0");
+    expect(colors.other).toBe("#d1d5db");
+  });
+
+  // --- Edge style toggle ---
+
+  it("renders the edge style toggle button labelled for the alternate style", () => {
+    // Store default is smoothstep, so the affordance offers a switch to bezier.
+    render(<OntologyGraph {...defaultProps} />);
+    const toggle = screen.getByLabelText(/Switch to bezier edges/);
+    expect(toggle).toBeDefined();
+    expect(toggle.textContent).toMatch(/Smooth Step/);
+  });
+
+  it("flips the toggle label when clicked", () => {
+    render(<OntologyGraph {...defaultProps} />);
+    const toggle = screen.getByLabelText(/Switch to bezier edges/);
+    fireEvent.click(toggle);
+    // After clicking, store is bezier — affordance now offers smooth step.
+    expect(screen.getByLabelText(/Switch to smooth step edges/)).toBeDefined();
   });
 });
 
@@ -248,7 +421,8 @@ describe("GraphLegend", () => {
     fireEvent.click(screen.getByLabelText("Expand legend"));
     expect(screen.getByText("Focus")).toBeDefined();
     expect(screen.getByText("Class")).toBeDefined();
-    expect(screen.getByText("Root")).toBeDefined();
+    expect(screen.getByText("Primary root")).toBeDefined();
+    expect(screen.getByText("Branch root")).toBeDefined();
     expect(screen.getByText("Individual")).toBeDefined();
     expect(screen.getByText("Property")).toBeDefined();
     expect(screen.getByText("External")).toBeDefined();
@@ -261,7 +435,7 @@ describe("GraphLegend", () => {
     expect(screen.getByText("subClassOf")).toBeDefined();
     expect(screen.getByText("equivalentTo")).toBeDefined();
     expect(screen.getByText("disjointWith")).toBeDefined();
-    expect(screen.getByText("seeAlso")).toBeDefined();
+    expect(screen.getByText("rdfs:seeAlso")).toBeDefined();
   });
 
   it("collapses legend when clicked again", () => {
