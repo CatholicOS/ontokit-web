@@ -927,15 +927,26 @@ export default function EditorPage() {
                 </Button>
               )}
 
-              {/* Suggestions link */}
-              {isSuggestionMode && (
-                <Link href={`/projects/${projectId}/suggestions`}>
-                  <Button variant="ghost" size="sm" className="gap-2 text-amber-600 dark:text-amber-400">
-                    <Lightbulb className="h-4 w-4" />
-                    <span className="hidden sm:inline">My Suggestions</span>
-                  </Button>
-                </Link>
-              )}
+              {/* Suggestions / PRs link — unified, mode-aware */}
+              <Link href={`/projects/${projectId}/pull-requests`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={editorMode === "standard" ? "gap-2 text-amber-600 dark:text-amber-400" : "gap-2"}
+                >
+                  {editorMode === "standard"
+                    ? <Lightbulb className="h-4 w-4" />
+                    : <GitPullRequest className="h-4 w-4" />}
+                  <span className="hidden sm:inline">
+                    {editorMode === "standard" ? "My Suggestions" : "My Pull Requests"}
+                  </span>
+                  {editorMode === "developer" && openPRCount > 0 && (
+                    <span className="rounded-full bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
+                      {openPRCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
 
               {/* Review Suggestions link (editors/admins only) */}
               {canEdit && pendingSuggestionCount > 0 && (
@@ -1021,19 +1032,6 @@ export default function EditorPage() {
                   </span>
                 )}
               </Button>
-
-              {/* PR Link */}
-              <Link href={`/projects/${projectId}/pull-requests`}>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <GitPullRequest className="h-4 w-4" />
-                  <span className="hidden sm:inline">PRs</span>
-                  {openPRCount > 0 && (
-                    <span className="rounded-full bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-                      {openPRCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
 
               <Button
                 variant="ghost"
