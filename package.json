@@ -28,7 +28,7 @@
     "@radix-ui/react-tooltip": "^1.2.16",
     "@scalar/api-reference-react": "^0.9.66",
     "@tanstack/react-query": "^5.102.2",
-    "@xyflow/react": "^12.11.3",
+    "@xyflow/react": "^12.11.6",
     "clsx": "^2.1.0",
     "cmdk": "^1.1.1",
     "d3": "^7.9.0",
