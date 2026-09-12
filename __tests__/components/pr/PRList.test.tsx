@@ -19,6 +19,7 @@ vi.mock("@/components/ui/button", () => ({
 
 vi.mock("lucide-react", () => ({
   GitPullRequest: () => <span data-testid="icon-git-pr" />,
+  Lightbulb: () => <span data-testid="icon-lightbulb" />,
 }));
 
 // Mock PRListItem
@@ -344,5 +345,152 @@ describe("PRList", () => {
 
     expect(screen.queryByText("Previous")).toBeNull();
     expect(screen.queryByText("Next")).toBeNull();
+  });
+
+  // ── Mode-aware labels (#65) ─────────────────────────────────────
+  describe("standard mode", () => {
+    it("relabels the Merged/Closed tabs as Accepted/Rejected", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      await act(async () => {
+        render(<PRList projectId="proj-1" mode="standard" />);
+      });
+      expect(screen.getByText("Accepted")).toBeDefined();
+      expect(screen.getByText("Rejected")).toBeDefined();
+      expect(screen.queryByText("Merged")).toBeNull();
+      expect(screen.queryByText("Closed")).toBeNull();
+    });
+
+    it("keeps developer wording in developer mode", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      await act(async () => {
+        render(<PRList projectId="proj-1" mode="developer" />);
+      });
+      expect(screen.getByText("Merged")).toBeDefined();
+      expect(screen.getByText("Closed")).toBeDefined();
+    });
+
+    it("counts items as suggestions", async () => {
+      mockList.mockResolvedValue(makeListResponse([makePR()], 3));
+      await act(async () => {
+        render(<PRList projectId="proj-1" mode="standard" />);
+      });
+      expect(screen.getByText("3 suggestions")).toBeDefined();
+    });
+
+    it("uses the singular noun for a single suggestion", async () => {
+      mockList.mockResolvedValue(makeListResponse([makePR()], 1));
+      await act(async () => {
+        render(<PRList projectId="proj-1" mode="standard" />);
+      });
+      expect(screen.getByText("1 suggestion")).toBeDefined();
+    });
+  });
+
+  // ── Author scoping (#65, admin/owner view) ──────────────────────
+  describe("author scoping", () => {
+    it("forwards authorId to the API so a 'My …' list only contains the viewer's", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      await act(async () => {
+        render(<PRList projectId="proj-1" authorId="user-42" />);
+      });
+      expect(mockList).toHaveBeenCalledWith(
+        "proj-1",
+        undefined,
+        "open",
+        "user-42",
+        0,
+        20
+      );
+    });
+
+    it("omits authorId for reviewers so they see every contributor's", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      await act(async () => {
+        render(<PRList projectId="proj-1" />);
+      });
+      expect(mockList).toHaveBeenCalledWith(
+        "proj-1",
+        undefined,
+        "open",
+        undefined,
+        0,
+        20
+      );
+    });
+
+    it("addresses the viewer directly in the empty state when scoped", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      await act(async () => {
+        render(<PRList projectId="proj-1" authorId="user-42" mode="standard" />);
+      });
+      expect(screen.getByText("You have no open suggestions.")).toBeDefined();
+    });
+
+    it("speaks about the project in the empty state when unscoped", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      await act(async () => {
+        render(<PRList projectId="proj-1" mode="standard" />);
+      });
+      expect(
+        screen.getByText("There are no open suggestions for this project.")
+      ).toBeDefined();
+    });
+
+    it("refetches when the author scope changes", async () => {
+      mockList.mockResolvedValue(makeListResponse([], 0));
+      const { rerender } = render(<PRList projectId="proj-1" />);
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1));
+      await act(async () => {
+        rerender(<PRList projectId="proj-1" authorId="user-42" />);
+      });
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(2));
+      expect(mockList).toHaveBeenLastCalledWith(
+        "proj-1",
+        undefined,
+        "open",
+        "user-42",
+        0,
+        20
+      );
+    });
+  });
+
+  // ── Mode-aware empty-state icon ─────────────────────────────────
+  it("uses the lightbulb icon in the standard-mode empty state", async () => {
+    mockList.mockResolvedValue(makeListResponse([], 0));
+    await act(async () => {
+      render(<PRList projectId="proj-1" mode="standard" />);
+    });
+    expect(screen.getByTestId("icon-lightbulb")).toBeDefined();
+    expect(screen.queryByTestId("icon-git-pr")).toBeNull();
+  });
+
+  it("keeps the pull-request icon in the developer-mode empty state", async () => {
+    mockList.mockResolvedValue(makeListResponse([], 0));
+    await act(async () => {
+      render(<PRList projectId="proj-1" mode="developer" />);
+    });
+    expect(screen.getByTestId("icon-git-pr")).toBeDefined();
+    expect(screen.queryByTestId("icon-lightbulb")).toBeNull();
+  });
+
+  it("resets pagination when the author scope changes", async () => {
+    mockList.mockResolvedValue(makeListResponse([makePR()], 40));
+    const { rerender } = render(<PRList projectId="proj-1" />);
+    await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Next"));
+    });
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith("proj-1", undefined, "open", undefined, 20, 20)
+    );
+
+    await act(async () => {
+      rerender(<PRList projectId="proj-1" authorId="user-42" />);
+    });
+    await waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith("proj-1", undefined, "open", "user-42", 0, 20)
+    );
   });
 });
