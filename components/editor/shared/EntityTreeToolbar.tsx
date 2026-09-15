@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useState, useEffect } from "react";
+import { useRef, useCallback, useState } from "react";
 import { Search, X, Plus, ChevronDown, ChevronsDown, ChevronRight, ChevronsRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,17 +44,13 @@ export function EntityTreeToolbar({
   const internalRef = useRef<HTMLInputElement>(null);
   const inputRef = searchInputRef || internalRef;
 
-  // Dismissible tip
-  const [showTip, setShowTip] = useState(false);
-  useEffect(() => {
+  const [showTip, setShowTip] = useState(() => {
     try {
-      if (!localStorage.getItem(TIP_DISMISSED_KEY)) {
-        setShowTip(true);
-      }
+      return !localStorage.getItem(TIP_DISMISSED_KEY);
     } catch {
-      // localStorage unavailable
+      return false;
     }
-  }, []);
+  });
 
   const dismissTip = useCallback(() => {
     setShowTip(false);

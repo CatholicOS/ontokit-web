@@ -17,20 +17,13 @@ type FilterType = "public" | "private" | "mine" | "all";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
-  const [filter, setFilter] = useState<FilterType>("public");
+  const [userFilter, setUserFilter] = useState<FilterType | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const isAuthenticated = status === "authenticated";
-
-  // Default authenticated users to "mine" tab
-  const authDefaultApplied = useRef(false);
-  useEffect(() => {
-    if (!authDefaultApplied.current && status !== "loading") {
-      authDefaultApplied.current = true;
-      if (isAuthenticated) setFilter("mine");
-    }
-  }, [status, isAuthenticated]);
+  const filter = userFilter ?? (status !== "loading" && isAuthenticated ? "mine" : "public");
+  const setFilter = useCallback((f: FilterType) => setUserFilter(f), []);
 
   // Debounce search input
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
