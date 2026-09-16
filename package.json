@@ -39,7 +39,7 @@
     "next-auth": "^5.0.0-beta.32",
     "next-intl": "^4.14.1",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "react-dom": "^19.3.0",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.5.4",
     "zustand": "^5.0.15"
@@ -58,7 +58,7 @@
     "@types/d3": "^7.4.0",
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react-dom": "^19.3.0",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
     "@typescript-eslint/parser": "^8.68.0",
     "@vitejs/plugin-react": "^6.1.1",
