@@ -1,0 +1,164 @@
+"use client";
+
+import { useCallback, useMemo, useRef, useState } from "react";
+import { MarkerType, type Node, type Edge } from "@xyflow/react";
+import type { EntityGraphResponse } from "@/lib/api/graph";
+import type { OntologyNodeData } from "@/components/graph/OntologyNode";
+import type { OntologyEdgeData } from "@/components/graph/OntologyEdge";
+import type { GraphNodeType, GraphEdgeType } from "@/lib/graph/types";
+
+export type LayoutDirection = "TB" | "LR";
+
+export interface NodeHandlers {
+  onNavigate?: (iri: string) => void;
+  onExpandNode?: (iri: string) => void;
+}
+
+interface LayoutResult {
+  nodes: Node<OntologyNodeData>[];
+  edges: Edge<OntologyEdgeData>[];
+  isLayouting: boolean;
+  runLayout: (data: EntityGraphResponse, direction?: LayoutDirection) => Promise<void>;
+  /** Update keyboard/click handlers without re-running layout. Node data
+   *  receives stable callbacks that read from a ref, so changing handlers
+   *  won't bust React.memo on `OntologyNode`. */
+  setNodeHandlers: (handlers: NodeHandlers) => void;
+}
+
+export const NODE_WIDTH = 180;
+export const NODE_HEIGHT = 44;
+
+const VALID_NODE_TYPES = new Set<GraphNodeType>([
+  "focus", "class", "root", "secondary_root", "individual", "property", "external", "unexplored",
+]);
+
+function normalizeNodeType(raw: string | undefined): GraphNodeType {
+  if (raw && VALID_NODE_TYPES.has(raw as GraphNodeType)) return raw as GraphNodeType;
+  return "class";
+}
+
+const VALID_EDGE_TYPES = new Set<GraphEdgeType>([
+  "subClassOf", "equivalentClass", "disjointWith", "seeAlso",
+]);
+
+function normalizeEdgeType(raw: string | undefined): GraphEdgeType {
+  if (raw && VALID_EDGE_TYPES.has(raw as GraphEdgeType)) return raw as GraphEdgeType;
+  return "subClassOf";
+}
+
+export function useELKLayout(): LayoutResult {
+  const [nodes, setNodes] = useState<Node<OntologyNodeData>[]>([]);
+  const [edges, setEdges] = useState<Edge<OntologyEdgeData>[]>([]);
+  const [isLayouting, setIsLayouting] = useState(false);
+  const layoutRunRef = useRef(0);
+
+  // Keyboard/click handlers live in a ref so they can be swapped without
+  // re-running layout or busting React.memo on OntologyNode.
+  const handlersRef = useRef<NodeHandlers>({});
+  const stableHandlers = useMemo(
+    () => ({
+      onNavigate: (iri: string) => handlersRef.current.onNavigate?.(iri),
+      onExpandNode: (iri: string) => handlersRef.current.onExpandNode?.(iri),
+    }),
+    [],
+  );
+  const setNodeHandlers = useCallback((h: NodeHandlers) => {
+    handlersRef.current = h;
+  }, []);
+
+  const runLayout = useCallback(
+    async (data: EntityGraphResponse, direction: LayoutDirection = "TB") => {
+      const localRunId = ++layoutRunRef.current;
+      setIsLayouting(true);
+
+      try {
+        const ELK = (await import("elkjs/lib/elk.bundled.js")).default;
+        const elk = new ELK();
+
+        const elkNodes = data.nodes.map((n) => ({
+          id: n.id,
+          width: Math.max(NODE_WIDTH, n.label.length * 7.5 + 32),
+          height: NODE_HEIGHT,
+          // Pin root nodes to the first layer so they align at the top
+          ...(n.node_type === "root" || n.node_type === "secondary_root"
+            ? { layoutOptions: { "elk.layered.layering.layerConstraint": "FIRST" } }
+            : {}),
+        }));
+
+        const elkEdges = data.edges.map((e) => ({
+          id: e.id,
+          sources: [e.source],
+          targets: [e.target],
+          // seeAlso edges should not influence layering — mark as non-hierarchical
+          ...(e.edge_type === "seeAlso"
+            ? { layoutOptions: { "elk.layered.priority.direction": "0" } }
+            : {}),
+        }));
+
+        const elkGraph = await elk.layout({
+          id: "root",
+          layoutOptions: {
+            "elk.algorithm": "layered",
+            "elk.direction": direction === "TB" ? "DOWN" : "RIGHT",
+            "elk.spacing.nodeNode": "40",
+            "elk.layered.spacing.nodeNodeBetweenLayers": "70",
+            "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+            "elk.edgeRouting": "SPLINES",
+            "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+            "elk.layered.cycleBreaking.strategy": "DEPTH_FIRST",
+            "elk.separateConnectedComponents": "false",
+          },
+          children: elkNodes,
+          edges: elkEdges,
+        });
+
+        const nodeMap = new Map(data.nodes.map((n) => [n.id, n]));
+        const layoutedNodes: Node<OntologyNodeData>[] = (elkGraph.children ?? []).map(
+          (elkNode) => {
+            const backendNode = nodeMap.get(elkNode.id)!;
+            return {
+              id: elkNode.id,
+              type: "ontologyNode",
+              position: { x: elkNode.x ?? 0, y: elkNode.y ?? 0 },
+              data: {
+                label: backendNode.label,
+                nodeType: normalizeNodeType(backendNode.node_type),
+                childCount: backendNode.child_count ?? undefined,
+                deprecated: false,
+                isExpanded: false,
+                layoutDirection: direction,
+                onNavigate: stableHandlers.onNavigate,
+                onExpandNode: stableHandlers.onExpandNode,
+              },
+            };
+          },
+        );
+
+        const layoutedEdges: Edge<OntologyEdgeData>[] = data.edges.map((e) => {
+          const normalized = normalizeEdgeType(e.edge_type);
+          return {
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            type: "ontologyEdge",
+            ...(normalized === "subClassOf" && {
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8", width: 16, height: 16 },
+            }),
+            data: {
+              edgeType: normalized,
+            },
+          };
+        });
+
+        if (layoutRunRef.current !== localRunId) return;
+        setNodes(layoutedNodes);
+        setEdges(layoutedEdges);
+      } finally {
+        if (layoutRunRef.current === localRunId) setIsLayouting(false);
+      }
+    },
+    [],
+  );
+
+  return { nodes, edges, isLayouting, runLayout, setNodeHandlers };
+}
