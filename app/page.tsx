@@ -11,6 +11,9 @@ import { ProjectCard } from "@/components/projects/project-card";
 import { projectApi } from "@/lib/api/projects";
 import { cn } from "@/lib/utils";
 
+/** Shared empty map so identity-mismatched renders keep a stable reference. */
+const EMPTY_FAVORITE_OVERRIDES: ReadonlyMap<string, boolean> = new Map();
+
 const PAGE_SIZE = 50;
 
 type FilterType = "public" | "private" | "mine" | "all";
@@ -64,7 +67,46 @@ export default function HomePage() {
     enabled: status !== "loading" && !((filter === "mine" || filter === "private") && !isAuthenticated),
   });
 
-  const projects = data?.pages.flatMap((page) => page.items) ?? [];
+  // Optimistic overrides: only tracks favorite toggles made in this session.
+  // Server data (is_favorited) remains the source of truth for everything else.
+  //
+  // Favorites are per-user, so the overrides are stamped with the identity that
+  // produced them and discarded during render when that identity changes. This
+  // keeps a sign-out/sign-in from applying one account's toggles to another's
+  // list, without a setState-in-effect.
+  const favoriteIdentity = session?.user?.id ?? session?.accessToken ?? null;
+  const [favoriteState, setFavoriteState] = useState<{
+    identity: string | null;
+    overrides: ReadonlyMap<string, boolean>;
+  }>({ identity: null, overrides: EMPTY_FAVORITE_OVERRIDES });
+
+  const favoriteOverrides =
+    favoriteState.identity === favoriteIdentity
+      ? favoriteState.overrides
+      : EMPTY_FAVORITE_OVERRIDES;
+
+  const handleFavoriteChange = useCallback(
+    (projectId: string, isFavorited: boolean) => {
+      setFavoriteState((prev) => {
+        const base =
+          prev.identity === favoriteIdentity ? prev.overrides : EMPTY_FAVORITE_OVERRIDES;
+        return {
+          identity: favoriteIdentity,
+          overrides: new Map(base).set(projectId, isFavorited),
+        };
+      });
+    },
+    [favoriteIdentity]
+  );
+
+  const rawProjects = data?.pages.flatMap((page) => page.items) ?? [];
+  // Array.prototype.sort is stable, so favorited projects float to the top while
+  // the server's created_at ordering is preserved within each group.
+  const projects = [...rawProjects].sort((a, b) => {
+    const aFav = favoriteOverrides.get(a.id) ?? a.is_favorited ?? false;
+    const bFav = favoriteOverrides.get(b.id) ?? b.is_favorited ?? false;
+    return (bFav ? 1 : 0) - (aFav ? 1 : 0);
+  });
   const total = data?.pages.at(-1)?.total ?? 0;
   const unfilteredTotal = data?.pages.at(-1)?.unfiltered_total ?? 0;
   const isFiltered = (!!debouncedSearch || filter !== "all") && unfilteredTotal > total;
@@ -245,7 +287,16 @@ export default function HomePage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {projects.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
+                    <ProjectCard
+                      key={project.id}
+                      project={{
+                        ...project,
+                        is_favorited:
+                          favoriteOverrides.get(project.id) ?? project.is_favorited,
+                      }}
+                      accessToken={session?.accessToken}
+                      onFavoriteChange={handleFavoriteChange}
+                    />
                   ))}
                 </div>
                 {hasNextPage && (

@@ -51,6 +51,8 @@ export interface Project {
   is_exemplar?: boolean;
   exemplar_slug?: string;
   exemplar_source_url?: string;
+  // Favorites
+  is_favorited?: boolean;
 }
 
 export interface ProjectListResponse {
@@ -297,6 +299,22 @@ export const projectApi = {
    */
   removeMember: (projectId: string, userId: string, token: string) =>
     api.delete(`/api/v1/projects/${projectId}/members/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  /**
+   * Add a project to the current user's favorites
+   */
+  favorite: (id: string, token: string) =>
+    api.post<Project>(`/api/v1/projects/${id}/favorite`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  /**
+   * Remove a project from the current user's favorites
+   */
+  unfavorite: (id: string, token: string) =>
+    api.delete<Project>(`/api/v1/projects/${id}/favorite`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
 

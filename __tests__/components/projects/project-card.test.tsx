@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 // Mock next/link to render a plain <a> tag
 vi.mock("next/link", () => ({
@@ -16,6 +16,21 @@ let mockPreferEditMode = false;
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: mockSessionAccessToken ? { accessToken: mockSessionAccessToken } : null }),
 }));
+
+const favoriteMock = vi.fn();
+const unfavoriteMock = vi.fn();
+
+vi.mock("@/lib/api/projects", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api/projects")>();
+  return {
+    ...actual,
+    projectApi: {
+      ...actual.projectApi,
+      favorite: (...args: unknown[]) => favoriteMock(...args),
+      unfavorite: (...args: unknown[]) => unfavoriteMock(...args),
+    },
+  };
+});
 
 vi.mock("@/lib/stores/editorModeStore", () => ({
   useEditorModeStore: <T,>(selector: (s: { preferEditMode: boolean }) => T) =>
@@ -43,6 +58,10 @@ describe("ProjectCard", () => {
   beforeEach(() => {
     mockSessionAccessToken = undefined;
     mockPreferEditMode = false;
+    favoriteMock.mockReset();
+    unfavoriteMock.mockReset();
+    favoriteMock.mockResolvedValue({});
+    unfavoriteMock.mockResolvedValue({});
   });
 
   // ── Basic rendering ─────────────────────────────────────────────
@@ -184,7 +203,92 @@ describe("ProjectCard", () => {
   // ── Custom className ────────────────────────────────────────────
   it("merges custom className onto the card", () => {
     render(<ProjectCard project={makeProject()} className="extra-class" />);
-    const link = screen.getByRole("link");
-    expect(link.className).toContain("extra-class");
+    expect(screen.getByTestId("project-card").className).toContain("extra-class");
+  });
+
+  // ── Favorites ───────────────────────────────────────────────────
+  describe("favorite star", () => {
+    it("is hidden when no access token is supplied", () => {
+      render(<ProjectCard project={makeProject()} />);
+      expect(screen.queryByRole("button", { name: /favorites/i })).toBeNull();
+    });
+
+    it("is shown to authenticated users and reflects the unfavorited state", () => {
+      render(<ProjectCard project={makeProject()} accessToken="tok" />);
+      const star = screen.getByRole("button", { name: "Add to favorites" });
+      expect(star.getAttribute("aria-pressed")).toBe("false");
+    });
+
+    it("reflects the favorited state", () => {
+      render(
+        <ProjectCard project={makeProject({ is_favorited: true })} accessToken="tok" />
+      );
+      const star = screen.getByRole("button", { name: "Remove from favorites" });
+      expect(star.getAttribute("aria-pressed")).toBe("true");
+    });
+
+    it("is not nested inside the project link", () => {
+      render(<ProjectCard project={makeProject()} accessToken="tok" />);
+      const star = screen.getByRole("button", { name: "Add to favorites" });
+      expect(star.closest("a")).toBeNull();
+    });
+
+    it("optimistically notifies the parent before the request settles", async () => {
+      const onFavoriteChange = vi.fn();
+      let resolveFavorite: (value: unknown) => void = () => {};
+      favoriteMock.mockReturnValue(
+        new Promise((resolve) => {
+          resolveFavorite = resolve;
+        })
+      );
+
+      render(
+        <ProjectCard
+          project={makeProject()}
+          accessToken="tok"
+          onFavoriteChange={onFavoriteChange}
+        />
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Add to favorites" }));
+
+      expect(onFavoriteChange).toHaveBeenCalledWith("proj-123", true);
+      expect(favoriteMock).toHaveBeenCalledWith("proj-123", "tok");
+
+      await act(async () => {
+        resolveFavorite({});
+      });
+      expect(onFavoriteChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("rolls the parent back when the request fails", async () => {
+      const onFavoriteChange = vi.fn();
+      favoriteMock.mockRejectedValue(new Error("boom"));
+
+      render(
+        <ProjectCard
+          project={makeProject()}
+          accessToken="tok"
+          onFavoriteChange={onFavoriteChange}
+        />
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Add to favorites" }));
+      });
+
+      expect(onFavoriteChange).toHaveBeenNthCalledWith(1, "proj-123", true);
+      expect(onFavoriteChange).toHaveBeenNthCalledWith(2, "proj-123", false);
+    });
+
+    it("calls unfavorite when the project is already favorited", async () => {
+      unfavoriteMock.mockResolvedValue({});
+      render(
+        <ProjectCard project={makeProject({ is_favorited: true })} accessToken="tok" />
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Remove from favorites" }));
+      });
+      expect(unfavoriteMock).toHaveBeenCalledWith("proj-123", "tok");
+      expect(favoriteMock).not.toHaveBeenCalled();
+    });
   });
 });
