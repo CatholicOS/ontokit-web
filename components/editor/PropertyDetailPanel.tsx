@@ -121,7 +121,10 @@ export function PropertyDetailPanel({
   const [editRelationships, setEditRelationships] = useState<RelationshipGroup[]>([]);
   const [editPropertyType, setEditPropertyType] = useState<PropertyType>("object");
 
-  const editInitializedRef = useRef(false);
+  // Whether the panel has already seeded its edit state for this mount. State
+  // rather than a ref because it is both read and written during render.
+  const [autoEnterDone, setAutoEnterDone] = useState(false);
+  const [restoredDraftApplied, setRestoredDraftApplied] = useState(false);
   const toast = useToast();
 
   // Build draft entry for auto-save
@@ -267,7 +270,7 @@ export function PropertyDetailPanel({
   const enterEditMode = useCallback(() => {
     if (!detail) return;
     initEditState(detail);
-    editInitializedRef.current = true;
+    setAutoEnterDone(true);
     setIsEditing(true);
   }, [detail, initEditState]);
 
@@ -283,13 +286,23 @@ export function PropertyDetailPanel({
     await flushToGit();
   }, [triggerSave, flushToGit]);
 
-  // Auto-enter edit mode
-  useEffect(() => {
-    if (isEditing || editInitializedRef.current) return;
-    if (!canEdit || !onUpdateProperty || !detail) return;
-
-    if (restoredDraft && restoredDraft.entityType === "property" && propertyIri) {
-      const d = restoredDraft as PropertyDraftEntry;
+  // Auto-enter edit mode, seeding from a restored draft when there is one.
+  //
+  // This is done during render rather than in an effect. `detail` is parsed
+  // synchronously from `sourceContent` and `restoredDraft` is read
+  // synchronously from the draft store, so both values are already known on the
+  // render that first satisfies the conditions — there is nothing to wait for.
+  // Adjusting state here rather than after the commit means the panel never
+  // paints an empty editor before the values arrive.
+  // See https://react.dev/learn/you-might-not-need-an-effect
+  const draftToRestore =
+    restoredDraft && restoredDraft.entityType === "property" && propertyIri
+      ? (restoredDraft as PropertyDraftEntry)
+      : null;
+  if (!isEditing && !autoEnterDone && canEdit && onUpdateProperty && detail) {
+    if (draftToRestore) {
+      setAutoEnterDone(true);
+      const d = draftToRestore;
       setEditPropertyType(d.propertyType);
       setEditLabels(d.labels);
       setEditComments(ensureTrailingEmpty(d.comments));
@@ -301,14 +314,20 @@ export function PropertyDetailPanel({
       setEditCharacteristics(d.characteristics);
       setEditAnnotations(d.annotations);
       setEditRelationships(d.relationships);
-      editInitializedRef.current = true;
+      // `clearRestoredDraft` updates state owned by useEntityAutoSave, so it
+      // cannot run during render — deferred to the effect below.
+      setRestoredDraftApplied(true);
       setIsEditing(true);
-      clearRestoredDraft();
-      return;
+    } else {
+      enterEditMode();
     }
+  }
 
-    enterEditMode();
-  }, [detail, canEdit, restoredDraft, propertyIri, clearRestoredDraft, onUpdateProperty, isEditing, enterEditMode]);
+  // Tell the draft store the restored draft has been taken up. This only
+  // synchronises with the store; it derives nothing.
+  useEffect(() => {
+    if (restoredDraftApplied) clearRestoredDraft();
+  }, [restoredDraftApplied, clearRestoredDraft]);
 
   // ── Edit helpers ──
   const updateLabel = useCallback((index: number, field: "value" | "lang", val: string) => {
