@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Command } from "cmdk";
 import { ChevronDown } from "lucide-react";
 import { langToFlag } from "@/lib/utils";
@@ -15,6 +15,13 @@ interface LanguagePickerProps {
   value: string;
   onChange: (code: string) => void;
   disabled?: boolean;
+  /**
+   * BCP 47 codes to hide from the list — used by `single-per-lang` annotations
+   * so a language that already has a value can't be picked a second time.
+   * The row's own `value` is never excluded, so the current selection stays
+   * visible and re-selectable.
+   */
+  excludeCodes?: readonly string[];
 }
 
 /** Set of codes that appear in the "Frequently used" group */
@@ -46,7 +53,7 @@ const GROUP_HEADING_CLASS =
  * language, a "Use custom code" option appears so users can enter arbitrary
  * BCP 47 tags (e.g. `grc`, `cu`, `sga`).
  */
-export function LanguagePicker({ value, onChange, disabled }: LanguagePickerProps) {
+export function LanguagePicker({ value, onChange, disabled, excludeCodes }: LanguagePickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,6 +103,33 @@ export function LanguagePicker({ value, onChange, disabled }: LanguagePickerProp
   const canonicalCode = langInfo?.code ?? value;
   const displayLabel = canonicalCode || "lang";
 
+  // Codes hidden from the list, normalized. The current selection is always
+  // kept so the row can still show (and re-pick) its own language.
+  const excludedCodes = useMemo(() => {
+    if (!excludeCodes?.length) return null;
+    const set = new Set(
+      excludeCodes
+        .map((c) => (findLanguageByCode(c)?.code ?? c).trim().toLowerCase())
+        .filter(Boolean),
+    );
+    set.delete(canonicalCode.trim().toLowerCase());
+    return set.size > 0 ? set : null;
+  }, [excludeCodes, canonicalCode]);
+
+  const isExcluded = useCallback(
+    (code: string) => !!excludedCodes?.has(code.trim().toLowerCase()),
+    [excludedCodes],
+  );
+
+  const frequentLanguages = useMemo(
+    () => (excludedCodes ? FREQUENT_LANGUAGES.filter((l) => !excludedCodes.has(l.code.toLowerCase())) : FREQUENT_LANGUAGES),
+    [excludedCodes],
+  );
+  const otherLanguages = useMemo(
+    () => (excludedCodes ? OTHER_LANGUAGES.filter((l) => !excludedCodes.has(l.code.toLowerCase())) : OTHER_LANGUAGES),
+    [excludedCodes],
+  );
+
   const handleSelect = (code: string) => {
     onChange(code);
     setSearch("");
@@ -106,7 +140,7 @@ export function LanguagePicker({ value, onChange, disabled }: LanguagePickerProp
   // Show "Use custom code" when search text is non-empty and doesn't exactly match a known code
   const trimmedSearch = search.trim();
   const showCustomOption =
-    trimmedSearch.length > 0 && !findLanguageByCode(trimmedSearch);
+    trimmedSearch.length > 0 && !findLanguageByCode(trimmedSearch) && !isExcluded(trimmedSearch);
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -174,7 +208,7 @@ export function LanguagePicker({ value, onChange, disabled }: LanguagePickerProp
               )}
 
               <Command.Group heading="Frequently used" className={GROUP_HEADING_CLASS}>
-                {FREQUENT_LANGUAGES.map((lang) => (
+                {frequentLanguages.map((lang) => (
                   <LanguageItem
                     key={lang.code}
                     lang={lang}
@@ -185,7 +219,7 @@ export function LanguagePicker({ value, onChange, disabled }: LanguagePickerProp
               </Command.Group>
 
               <Command.Group heading="All languages" className={GROUP_HEADING_CLASS}>
-                {OTHER_LANGUAGES.map((lang) => (
+                {otherLanguages.map((lang) => (
                   <LanguageItem
                     key={lang.code}
                     lang={lang}
