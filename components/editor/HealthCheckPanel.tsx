@@ -32,6 +32,7 @@ import {
 import type { ConsistencyCheckResult, ConsistencyIssue, DuplicateCluster, DuplicateDetectionResult } from "@/lib/ontology/qualityTypes";
 import Link from "next/link";
 import { cn, formatDateTime, getLocalName } from "@/lib/utils";
+import type { ConnectionState } from "@/components/ui/ConnectionStatus";
 
 interface HealthCheckPanelProps {
   projectId: string;
@@ -42,6 +43,8 @@ interface HealthCheckPanelProps {
   onNavigateToClass?: (iri: string, subjectType?: string) => void;
   /** Whether the current user can trigger a lint run (requires admin/manager role) */
   canRunLint?: boolean;
+  /** Called whenever the lint WebSocket connection state changes */
+  onWsStatusChange?: (status: ConnectionState) => void;
 }
 
 type HealthTab = "lint" | "consistency" | "duplicates";
@@ -67,6 +70,7 @@ export function HealthCheckPanel({
   isOpen,
   onClose,
   onNavigateToClass,
+  onWsStatusChange,
 }: HealthCheckPanelProps) {
   const [activeTab, setActiveTab] = useState<HealthTab>("lint");
   const [summary, setSummary] = useState<LintSummary | null>(null);
@@ -191,11 +195,17 @@ export function HealthCheckPanel({
 
   // WebSocket for real-time updates
   useEffect(() => {
-    if (!isOpen || !accessToken) return;
+    if (!isOpen) {
+      onWsStatusChange?.("disconnected");
+      return;
+    }
+    if (!accessToken) return;
 
     // Track if this effect is still active (handles React Strict Mode double-invoke)
     let isActive = true;
     let ws: WebSocket | null = null;
+
+    onWsStatusChange?.("connecting");
 
     const handleMessage = (message: LintWebSocketMessage) => {
       if (!isActive) return;
@@ -209,24 +219,26 @@ export function HealthCheckPanel({
 
     // Small delay to avoid spurious connections during Strict Mode remounts
     const timeoutId = setTimeout(() => {
-      if (isActive) {
-        ws = createLintWebSocket(
-          projectId,
-          handleMessage,
-          () => {
-            if (isActive) {
-              setIsRunning(false);
-              setError("Lint WebSocket connection failed");
-            }
-          },
-          (event) => {
-            if (isActive && event.code !== 1000) {
-              setIsRunning(false);
-            }
-          },
-          accessToken
-        );
-      }
+      if (!isActive) return;
+      ws = createLintWebSocket(
+        projectId,
+        handleMessage,
+        () => {
+          if (isActive) {
+            setIsRunning(false);
+            setError("Lint WebSocket connection failed");
+          }
+        },
+        (event) => {
+          if (isActive && event.code !== 1000) {
+            setIsRunning(false);
+          }
+        },
+        accessToken
+      );
+      ws.addEventListener("open", () => { if (isActive) onWsStatusChange?.("connected"); });
+      ws.addEventListener("close", () => { if (isActive) onWsStatusChange?.("disconnected"); });
+      ws.addEventListener("error", () => { if (isActive) onWsStatusChange?.("disconnected"); });
     }, 100);
 
     return () => {
@@ -235,8 +247,9 @@ export function HealthCheckPanel({
       if (ws) {
         ws.close();
       }
+      onWsStatusChange?.("disconnected");
     };
-  }, [isOpen, projectId, accessToken]);
+  }, [isOpen, projectId, accessToken, onWsStatusChange]);
 
   const handleClearResults = async () => {
     if (!accessToken) return;
