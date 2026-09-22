@@ -1,7 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies, headers } from "next/headers";
 
-const SUPPORTED_LOCALES = ["en"] as const;
+const SUPPORTED_LOCALES = ["en", "pt"] as const;
 const DEFAULT_LOCALE = "en";
 const LOCALE_COOKIE = "NEXT_LOCALE";
 
