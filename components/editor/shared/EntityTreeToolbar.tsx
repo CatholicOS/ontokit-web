@@ -130,21 +130,21 @@ export function EntityTreeToolbar({
         {showCollapseGroup && (
           <div className="flex rounded-md border border-slate-200 dark:border-slate-600">
             <button
-              onClick={onCollapseAll}
-              disabled={collapseDisabled}
-              className={cn(btnBase, "rounded-l-md border-r border-slate-200 dark:border-slate-600", collapseDisabled ? btnDisabled : btnEnabled)}
-              aria-label="Collapse all"
-            >
-              <ChevronsRight className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Collapse</span>
-            </button>
-            <button
               onClick={onCollapseOneLevel}
               disabled={collapseDisabled}
-              className={cn(btnBase, "rounded-r-md px-1", collapseDisabled ? btnDisabled : btnEnabled)}
+              className={cn(btnBase, "rounded-l-md border-r border-slate-200 dark:border-slate-600", collapseDisabled ? btnDisabled : btnEnabled)}
               aria-label="Collapse one level"
             >
               <ChevronRight className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Collapse</span>
+            </button>
+            <button
+              onClick={onCollapseAll}
+              disabled={collapseDisabled}
+              className={cn(btnBase, "rounded-r-md px-1", collapseDisabled ? btnDisabled : btnEnabled)}
+              aria-label="Collapse all"
+            >
+              <ChevronsRight className="h-3.5 w-3.5" />
             </button>
           </div>
         )}
