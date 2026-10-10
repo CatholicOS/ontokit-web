@@ -115,10 +115,10 @@ export function PRCreateModal({
                 <select
                   value={sourceBranch}
                   onChange={(e) => setSourceBranch(e.target.value)}
-                  className="flex-1 rounded-sm border-0 bg-transparent py-1 text-sm focus:outline-hidden focus:ring-0"
+                  className="flex-1 rounded-sm border-0 bg-transparent py-1 text-sm text-slate-900 focus:outline-hidden focus:ring-0 dark:text-white"
                 >
                   {branches.map((branch) => (
-                    <option key={branch.name} value={branch.name}>
+                    <option key={branch.name} value={branch.name} className="bg-white text-slate-900 dark:bg-slate-700 dark:text-white">
                       {branch.name}
                     </option>
                   ))}
@@ -137,10 +137,10 @@ export function PRCreateModal({
                 <select
                   value={targetBranch}
                   onChange={(e) => setTargetBranch(e.target.value)}
-                  className="flex-1 rounded-sm border-0 bg-transparent py-1 text-sm focus:outline-hidden focus:ring-0"
+                  className="flex-1 rounded-sm border-0 bg-transparent py-1 text-sm text-slate-900 focus:outline-hidden focus:ring-0 dark:text-white"
                 >
                   {branches.map((branch) => (
-                    <option key={branch.name} value={branch.name}>
+                    <option key={branch.name} value={branch.name} className="bg-white text-slate-900 dark:bg-slate-700 dark:text-white">
                       {branch.name}
                     </option>
                   ))}
