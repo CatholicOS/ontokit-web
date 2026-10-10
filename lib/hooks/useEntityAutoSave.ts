@@ -57,7 +57,16 @@ export function useEntityAutoSave({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [restoredDraft, setRestoredDraft] = useState<AnyDraftEntry | null>(null);
+  // Seeded synchronously so the draft is available on the very first render.
+  // The store is backed by localStorage, so the lookup is a plain read — there
+  // is nothing to wait for, and consumers that initialise their edit state from
+  // a restored draft would otherwise miss it on the render where their own data
+  // first becomes available.
+  const [restoredDraft, setRestoredDraft] = useState<AnyDraftEntry | null>(() =>
+    entityIri && branch
+      ? useDraftStore.getState().getDraft(draftKey(projectId, branch, entityIri)) ?? null
+      : null,
+  );
 
   const flushingRef = useRef(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

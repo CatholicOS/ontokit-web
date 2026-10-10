@@ -14,15 +14,22 @@ const stableClearDraft = (key: string) => {
 };
 const stableGetDraft = (key: string) => mockDrafts[key];
 
-vi.mock("@/lib/stores/draftStore", () => ({
-  draftKey: (projectId: string, branch: string, iri: string) =>
-    `${projectId}:${branch}:${iri}`,
-  useDraftStore: () => ({
-    setDraft: stableSetDraft,
-    clearDraft: stableClearDraft,
-    getDraft: stableGetDraft,
-  }),
-}));
+const storeApi = {
+  setDraft: stableSetDraft,
+  clearDraft: stableClearDraft,
+  getDraft: stableGetDraft,
+};
+
+vi.mock("@/lib/stores/draftStore", () => {
+  // Mirrors zustand's shape: callable as a hook, plus a `getState` escape hatch
+  // for reads outside the React lifecycle (used to seed `restoredDraft`).
+  const useDraftStore = Object.assign(() => storeApi, { getState: () => storeApi });
+  return {
+    draftKey: (projectId: string, branch: string, iri: string) =>
+      `${projectId}:${branch}:${iri}`,
+    useDraftStore,
+  };
+});
 
 beforeEach(() => {
   for (const key of Object.keys(mockDrafts)) {
@@ -229,6 +236,23 @@ describe("useEntityAutoSave", () => {
     expect(result.current.saveStatus).toBe("idle");
     expect(result.current.saveError).toBeNull();
     expect(result.current.validationError).toBeNull();
+    expect(result.current.restoredDraft).toBeNull();
+  });
+
+  it("exposes the restored draft on the very first render, not after an effect", () => {
+    const key = "proj-1:main:http://example.org/myProp";
+    mockDrafts[key] = makeDraftEntry();
+
+    // renderHook's initial `result.current` is the value from the first render
+    // pass. Before the draft was seeded synchronously this was null and only
+    // became populated once the restore effect had run, which meant a consumer
+    // initialising its edit state on that first render silently missed it.
+    const { result } = renderHook(() => useEntityAutoSave(BASE_OPTIONS));
+    expect(result.current.restoredDraft).toEqual(mockDrafts[key]);
+  });
+
+  it("reports no restored draft on first render when the store is empty", () => {
+    const { result } = renderHook(() => useEntityAutoSave(BASE_OPTIONS));
     expect(result.current.restoredDraft).toBeNull();
   });
 
