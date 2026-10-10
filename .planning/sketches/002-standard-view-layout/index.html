@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch 002 — Standard View Layout</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    body.with-variants { padding-top: 84px; }
+
+    /* === App chrome === */
+    .app {
+      display: grid;
+      grid-template-rows: var(--header-height) auto 1fr;
+      height: calc(100vh - 84px);
+      background: var(--bg-canvas);
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: var(--text-sm);
+    }
+    .app-brand { font-weight: 700; color: var(--text); font-size: 15px; }
+    .app-nav { display: flex; gap: 18px; color: var(--text-muted); }
+    .app-nav a:hover { color: var(--text); cursor: pointer; }
+    .spacer { flex: 1; }
+    .pill {
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      background: var(--bg-subtle);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+
+    .project-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .project-title { font-weight: 600; font-size: var(--text-sm); }
+    .seg {
+      display: inline-flex;
+      gap: 0;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      font-size: var(--text-xs);
+    }
+    .seg button {
+      padding: 4px 10px;
+      color: var(--text-muted);
+    }
+    .seg button.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* === Editor body — TWO PANES ONLY (corrected) === */
+    .editor {
+      display: grid;
+      grid-template-columns: var(--tree-width) 1fr;
+      overflow: hidden;
+    }
+    .tree-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-panel {
+      background: var(--surface);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Resizable divider hint */
+    .tree-panel { position: relative; }
+    .tree-panel::after {
+      content: '';
+      position: absolute;
+      top: 0; right: -2px; bottom: 0;
+      width: 4px;
+      cursor: col-resize;
+    }
+
+    /* Tree */
+    .tree-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+    }
+    .tree-tabs button {
+      padding: 8px 12px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+    }
+    .tree-tabs button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 500;
+    }
+    .tree-toolbar {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tree-toolbar button {
+      padding: 4px 8px;
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+    }
+    .tree-toolbar button:hover { background: var(--bg-subtle); }
+    .tree-list {
+      padding: 4px 8px;
+      font-size: var(--text-sm);
+      flex: 1;
+      overflow: auto;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .tree-item:hover { background: var(--bg-subtle); }
+    .tree-item.selected {
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .tree-toggle {
+      width: 14px;
+      color: var(--text-faint);
+      font-family: monospace;
+    }
+    .tree-pip {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--color-owl-class);
+      flex-shrink: 0;
+    }
+    .tree-children { padding-left: 18px; }
+
+    /* === The new tab strip + detail pane === */
+    .pane-tabstrip {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .pane-tabstrip button {
+      flex: 0 0 auto;
+      padding: 12px 28px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .pane-tabstrip button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--accent-bg);
+    }
+    .pane-tabstrip button:hover:not(.active) {
+      color: var(--text);
+      background: var(--bg-subtle);
+    }
+    .pane-tabstrip svg { flex-shrink: 0; }
+
+    .entity-header {
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .entity-pip {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--color-owl-class) 18%, transparent);
+      color: var(--color-owl-class);
+      font-weight: 700;
+      font-size: 13px;
+      border: 1px solid color-mix(in srgb, var(--color-owl-class) 35%, transparent);
+    }
+    .entity-name {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .entity-iri {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .entity-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .entity-actions button {
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+    }
+    .entity-actions button:hover {
+      color: var(--text);
+      background: var(--bg-subtle);
+    }
+
+    /* Pane body — Detail */
+    .pane-body {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 24px;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+      align-items: start;
+    }
+    .field-label {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .field-label svg { width: 12px; height: 12px; }
+    .field-value {
+      color: var(--text);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: var(--text-sm);
+      min-height: 32px;
+      line-height: 1.5;
+    }
+    .field-value.parent {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .field-value.parent .pip {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--color-owl-class) 18%, transparent);
+      color: var(--color-owl-class);
+      font-size: 11px;
+      font-weight: 700;
+      display: grid; place-items: center;
+    }
+    .field-row.lang-end { grid-template-columns: 130px 1fr 60px; }
+    .lang-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 6px 8px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+
+    /* Pane body — Graph */
+    .pane-body.graph { padding: 0; position: relative; flex: 1; }
+    .graph-canvas {
+      flex: 1;
+      background: var(--bg-canvas);
+      position: relative;
+      min-height: 480px;
+      overflow: hidden;
+    }
+    .graph-toolbar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      gap: 6px;
+      z-index: 5;
+    }
+    .graph-toolbar button {
+      padding: 5px 10px;
+      font-size: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .graph-toolbar button:hover { color: var(--text); }
+    .graph-toolbar svg { width: 12px; height: 12px; }
+    .expand-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 5px 12px !important;
+      z-index: 5;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
+      font-size: 12px;
+      display: inline-flex !important;
+      align-items: center;
+      gap: 5px;
+    }
+    .expand-btn:hover { color: var(--accent); border-color: var(--accent-border); }
+    .graph-counter {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      font-size: 11px;
+      color: var(--text-faint);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      z-index: 5;
+    }
+    .graph-node {
+      position: absolute;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1.5px solid;
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .graph-node:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .graph-node.focus {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border-color: var(--accent-border);
+      font-weight: 600;
+    }
+    .graph-node.parent {
+      background: color-mix(in srgb, var(--color-owl-class) 14%, var(--surface));
+      color: var(--text);
+      border-color: color-mix(in srgb, var(--color-owl-class) 40%, transparent);
+    }
+    .graph-node.child {
+      background: color-mix(in srgb, var(--color-owl-class) 8%, var(--surface));
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .graph-node.sibling {
+      background: var(--surface);
+      color: var(--text-muted);
+      border-color: var(--border);
+      border-style: dashed;
+    }
+    .graph-edge {
+      position: absolute;
+      background: var(--border-strong);
+      transform-origin: left center;
+      height: 1.5px;
+      pointer-events: none;
+    }
+    .graph-arrow::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -3px;
+      width: 0; height: 0;
+      border-left: 7px solid var(--border-strong);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+
+    /* Density variants */
+    [data-density="compact"] .pane-tabstrip button { padding: 8px 22px; font-size: 12px; gap: 6px; }
+    [data-density="compact"] .pane-tabstrip svg { width: 12px; height: 12px; }
+    [data-density="compact"] .entity-header { padding: 10px 20px; gap: 10px; }
+    [data-density="compact"] .entity-pip { width: 24px; height: 24px; font-size: 11px; }
+    [data-density="compact"] .entity-name { font-size: var(--text-sm); }
+    [data-density="compact"] .entity-iri { font-size: 10px; }
+    [data-density="compact"] .pane-body { padding: 14px 20px; }
+    [data-density="compact"] .field-row { margin-bottom: 10px; gap: 14px; }
+
+    [data-density="spacious"] .pane-tabstrip button { padding: 16px 32px; font-size: 15px; gap: 10px; }
+    [data-density="spacious"] .pane-tabstrip svg { width: 16px; height: 16px; }
+    [data-density="spacious"] .entity-header { padding: 18px 28px; gap: 14px; }
+    [data-density="spacious"] .entity-pip { width: 32px; height: 32px; font-size: 14px; }
+    [data-density="spacious"] .entity-name { font-size: var(--text-xl); }
+    [data-density="spacious"] .pane-body { padding: 24px 28px; }
+
+    /* === Variant D modifier: tab buttons span 50/50 of the entire right pane === */
+    /* Vertical padding intentionally matches the left pane's tree-tabs (8px)
+       so the bottom border of the right-pane Detail|Graph strip aligns with
+       the bottom border of the left-pane Classes|Properties|Individuals strip. */
+    [data-tabstrip="full"] .pane-tabstrip button {
+      flex: 1 1 50%;
+      justify-content: center;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      font-size: var(--text-xs);
+    }
+    [data-tabstrip="full"] .pane-tabstrip svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .density-banner {
+      position: fixed;
+      top: 56px;
+      left: 0; right: 0;
+      z-index: 9997;
+      padding: 6px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body class="with-variants">
+  <!-- Variant nav -->
+  <div class="variant-nav">
+    <span class="label">Sketch 002 — standard view layout (2-pane)</span>
+    <button class="variant-tab" onclick="show('a', this)">A: Compact (collapsed left)</button>
+    <button class="variant-tab" onclick="show('b', this)">B: Comfortable</button>
+    <button class="variant-tab" onclick="show('c', this)">C: Spacious</button>
+    <button class="variant-tab active" onclick="show('d', this)">D: Compact + 50/50 tabs ★</button>
+  </div>
+
+  <!-- ============== Variant A: Compact ============== -->
+  <section id="variant-a" class="variant" style="display:none">
+    <div class="density-banner">Variant A · Compact density · Detail tab active. Click <strong>Graph</strong> in the right pane to swap.</div>
+    <div class="app" data-density="compact">
+      <header class="app-header">
+        <div class="app-brand">OntoKit</div>
+        <nav class="app-nav"><a>Projects</a><a>Info</a><a>Documentation</a><a>API Reference</a></nav>
+        <div class="spacer"></div>
+        <span class="pill">main · d484ded</span>
+        <span class="pill">Health</span>
+      </header>
+      <div class="project-bar">
+        <span class="project-title">Catholic Semantic Canon</span>
+        <span class="pill">14,973 classes</span>
+        <div class="spacer"></div>
+        <div class="seg"><button>Viewer</button><button class="active">Editor</button></div>
+        <div class="seg"><button class="active">Standard</button><button>Developer</button></div>
+      </div>
+      <div class="editor">
+        <aside class="tree-panel">
+          <div class="tree-tabs"><button class="active">Classes</button><button>Properties</button><button>Individuals</button></div>
+          <div class="tree-toolbar"><button>+ Add</button><button>Expand</button><button>Collapse</button></div>
+          <div class="tree-list">
+            <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Actor</div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Deity</div>
+              <div class="tree-children">
+                <div class="tree-item selected"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Triune God</div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Father</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Holy Spirit</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Son</div>
+                </div>
+              </div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Human Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Organizational Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Role</div>
+            </div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Authority</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Document / Artifact</div>
+          </div>
+        </aside>
+        <main class="detail-panel">
+          <div class="pane-tabstrip">
+            <button class="active" onclick="paneSwap(this, 'a')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              Detail
+            </button>
+            <button onclick="paneSwap(this, 'a')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+              Graph
+            </button>
+          </div>
+          <div class="entity-header">
+            <div class="entity-pip">C</div>
+            <div style="flex:1;">
+              <div class="entity-name">Triune God</div>
+              <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+            </div>
+            <div class="entity-actions">
+              <button>⎘ Copy IRI</button>
+              <button>&lt;/&gt; Source</button>
+            </div>
+          </div>
+          <div class="pane-body" id="body-a-detail">
+            <div class="field-row lang-end"><div class="field-label">Label</div><div class="field-value">Triune God</div><div class="lang-tag">en</div></div>
+            <div class="field-row lang-end"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit. Each Person fully possesses the one divine essence.</div><div class="lang-tag">lang</div></div>
+            <div class="field-row"><div class="field-label">Comment(s)</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">Add another Comment — or translation.</div></div>
+            <div class="field-row"><div class="field-label">Example(s)</div><div class="field-value">Catholic theology treats the Triune God as the central mystery of faith.</div></div>
+            <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value parent"><span class="pip">C</span>Deity</div></div>
+            <div class="field-row"><div class="field-label">Relationships</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">+ Add relationship</div></div>
+            <div class="field-row"><div class="field-label">Statistics</div><div class="field-value">3 subclasses · — instances</div></div>
+          </div>
+          <div class="pane-body graph" id="body-a-graph" style="display:none;">
+            <div class="graph-canvas" id="canvas-a"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Variant B: Comfortable ============== -->
+  <section id="variant-b" class="variant" style="display:none">
+    <div class="density-banner">Variant B · Comfortable density (matches current OntoKit) · Detail tab active. Click <strong>Graph</strong> to swap.</div>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-brand">OntoKit</div>
+        <nav class="app-nav"><a>Projects</a><a>Info</a><a>Documentation</a><a>API Reference</a></nav>
+        <div class="spacer"></div>
+        <span class="pill">main · d484ded</span>
+        <span class="pill">Health</span>
+      </header>
+      <div class="project-bar">
+        <span class="project-title">Catholic Semantic Canon</span>
+        <span class="pill">14,973 classes</span>
+        <div class="spacer"></div>
+        <div class="seg"><button>Viewer</button><button class="active">Editor</button></div>
+        <div class="seg"><button class="active">Standard</button><button>Developer</button></div>
+      </div>
+      <div class="editor">
+        <aside class="tree-panel">
+          <div class="tree-tabs"><button class="active">Classes</button><button>Properties</button><button>Individuals</button></div>
+          <div class="tree-toolbar"><button>+ Add</button><button>Expand</button><button>Collapse</button></div>
+          <div class="tree-list">
+            <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Actor</div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Deity</div>
+              <div class="tree-children">
+                <div class="tree-item selected"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Triune God</div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Father</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Holy Spirit</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Son</div>
+                </div>
+              </div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Human Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Organizational Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Role</div>
+            </div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Authority (Source and Scope)</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Document / Artifact</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Event</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Normative Concepts</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Operational Concepts</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Place</div>
+          </div>
+        </aside>
+        <main class="detail-panel">
+          <div class="pane-tabstrip">
+            <button class="active" onclick="paneSwap(this, 'b')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              Detail
+            </button>
+            <button onclick="paneSwap(this, 'b')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+              Graph
+            </button>
+          </div>
+          <div class="entity-header">
+            <div class="entity-pip">C</div>
+            <div style="flex:1;">
+              <div class="entity-name">Triune God</div>
+              <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+            </div>
+            <div class="entity-actions">
+              <button>⎘ Copy IRI</button>
+              <button>&lt;/&gt; Source</button>
+            </div>
+          </div>
+          <div class="pane-body" id="body-b-detail">
+            <div class="field-row lang-end"><div class="field-label">Label</div><div class="field-value">Triune God</div><div class="lang-tag">en</div></div>
+            <div class="field-row lang-end"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit. Each Person fully possesses the one divine essence, equal in divinity and united in communion without division or hierarchy.</div><div class="lang-tag">lang</div></div>
+            <div class="field-row"><div class="field-label">Comment(s)</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">Add another Comment — or translation.</div></div>
+            <div class="field-row"><div class="field-label">Example(s)</div><div class="field-value">Catholic theology treats the Triune God as the central mystery of faith.</div></div>
+            <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value parent"><span class="pip">C</span>Deity</div></div>
+            <div class="field-row"><div class="field-label">Relationships</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">+ Add relationship</div></div>
+            <div class="field-row"><div class="field-label">Statistics</div><div class="field-value">3 subclasses · — instances</div></div>
+          </div>
+          <div class="pane-body graph" id="body-b-graph" style="display:none;">
+            <div class="graph-canvas" id="canvas-b"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Variant C: Spacious ============== -->
+  <section id="variant-c" class="variant" style="display:none">
+    <div class="density-banner">Variant C · Spacious density · Detail tab active. Click <strong>Graph</strong> to swap.</div>
+    <div class="app" data-density="spacious">
+      <header class="app-header">
+        <div class="app-brand">OntoKit</div>
+        <nav class="app-nav"><a>Projects</a><a>Info</a><a>Documentation</a><a>API Reference</a></nav>
+        <div class="spacer"></div>
+        <span class="pill">main · d484ded</span>
+        <span class="pill">Health</span>
+      </header>
+      <div class="project-bar">
+        <span class="project-title">Catholic Semantic Canon</span>
+        <span class="pill">14,973 classes</span>
+        <div class="spacer"></div>
+        <div class="seg"><button>Viewer</button><button class="active">Editor</button></div>
+        <div class="seg"><button class="active">Standard</button><button>Developer</button></div>
+      </div>
+      <div class="editor">
+        <aside class="tree-panel">
+          <div class="tree-tabs"><button class="active">Classes</button><button>Properties</button><button>Individuals</button></div>
+          <div class="tree-toolbar"><button>+ Add</button><button>Expand</button><button>Collapse</button></div>
+          <div class="tree-list">
+            <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Actor</div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Deity</div>
+              <div class="tree-children">
+                <div class="tree-item selected"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Triune God</div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Father</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Holy Spirit</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Son</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <main class="detail-panel">
+          <div class="pane-tabstrip">
+            <button class="active" onclick="paneSwap(this, 'c')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              Detail
+            </button>
+            <button onclick="paneSwap(this, 'c')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+              Graph
+            </button>
+          </div>
+          <div class="entity-header">
+            <div class="entity-pip">C</div>
+            <div style="flex:1;">
+              <div class="entity-name">Triune God</div>
+              <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+            </div>
+            <div class="entity-actions">
+              <button>⎘ Copy IRI</button>
+              <button>&lt;/&gt; Source</button>
+            </div>
+          </div>
+          <div class="pane-body" id="body-c-detail">
+            <div class="field-row lang-end"><div class="field-label">Label</div><div class="field-value">Triune God</div><div class="lang-tag">en</div></div>
+            <div class="field-row lang-end"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit.</div><div class="lang-tag">lang</div></div>
+            <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value parent"><span class="pip">C</span>Deity</div></div>
+            <div class="field-row"><div class="field-label">Statistics</div><div class="field-value">3 subclasses · — instances</div></div>
+          </div>
+          <div class="pane-body graph" id="body-c-graph" style="display:none;">
+            <div class="graph-canvas" id="canvas-c"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Variant D: Compact + 50/50 tab strip (WINNER) ============== -->
+  <section id="variant-d" class="variant">
+    <div class="density-banner">Variant D · Compact density · <strong>tabs span 50% each of the right pane</strong> · Detail tab active. Click <strong>Graph</strong> to swap. ★ Selected</div>
+    <div class="app" data-density="compact" data-tabstrip="full">
+      <header class="app-header">
+        <div class="app-brand">OntoKit</div>
+        <nav class="app-nav"><a>Projects</a><a>Info</a><a>Documentation</a><a>API Reference</a></nav>
+        <div class="spacer"></div>
+        <span class="pill">main · d484ded</span>
+        <span class="pill">Health</span>
+      </header>
+      <div class="project-bar">
+        <span class="project-title">Catholic Semantic Canon</span>
+        <span class="pill">14,973 classes</span>
+        <div class="spacer"></div>
+        <div class="seg"><button>Viewer</button><button class="active">Editor</button></div>
+        <div class="seg"><button class="active">Standard</button><button>Developer</button></div>
+      </div>
+      <div class="editor">
+        <aside class="tree-panel">
+          <div class="tree-tabs"><button class="active">Classes</button><button>Properties</button><button>Individuals</button></div>
+          <div class="tree-toolbar"><button>+ Add</button><button>Expand</button><button>Collapse</button></div>
+          <div class="tree-list">
+            <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Actor</div>
+            <div class="tree-children">
+              <div class="tree-item"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Deity</div>
+              <div class="tree-children">
+                <div class="tree-item selected"><span class="tree-toggle">▾</span><span class="tree-pip"></span>Triune God</div>
+                <div class="tree-children">
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Father</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Holy Spirit</div>
+                  <div class="tree-item"><span class="tree-toggle">·</span><span class="tree-pip"></span>God the Son</div>
+                </div>
+              </div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Human Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Organizational Actor</div>
+              <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Role</div>
+            </div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Authority (Source and Scope)</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Document / Artifact</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Event</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Normative Concepts</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Operational Concepts</div>
+            <div class="tree-item"><span class="tree-toggle">▸</span><span class="tree-pip"></span>Place</div>
+          </div>
+        </aside>
+        <main class="detail-panel">
+          <div class="pane-tabstrip">
+            <button class="active" onclick="paneSwap(this, 'd')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+              Detail
+            </button>
+            <button onclick="paneSwap(this, 'd')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><line x1="7.6" y1="7.5" x2="11.2" y2="15.6"/><line x1="16.4" y1="7.5" x2="12.8" y2="15.6"/></svg>
+              Graph
+            </button>
+          </div>
+          <div class="entity-header">
+            <div class="entity-pip">C</div>
+            <div style="flex:1;">
+              <div class="entity-name">Triune God</div>
+              <div class="entity-iri">https://ontology.catholicos.catholic/R7xwsOkoji8EZRUrS511KGF</div>
+            </div>
+            <div class="entity-actions">
+              <button>⎘ Copy IRI</button>
+              <!-- Source button removed: Standard view doesn't expose source editing.
+                   Developer view will get Source as a peer tab in the right pane. -->
+            </div>
+          </div>
+          <div class="pane-body" id="body-d-detail">
+            <div class="field-row lang-end"><div class="field-label">Label</div><div class="field-value">Triune God</div><div class="lang-tag">en</div></div>
+            <div class="field-row lang-end"><div class="field-label">Definition</div><div class="field-value">The Triune God refers to the one true God who exists eternally as three distinct divine Persons: Father, Son, and Holy Spirit. Each Person fully possesses the one divine essence, equal in divinity and united in communion without division or hierarchy.</div><div class="lang-tag">lang</div></div>
+            <div class="field-row"><div class="field-label">Comment(s)</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">Add another Comment — or translation.</div></div>
+            <div class="field-row"><div class="field-label">Example(s)</div><div class="field-value">Catholic theology treats the Triune God as the central mystery of faith.</div></div>
+            <div class="field-row"><div class="field-label">Parent(s)</div><div class="field-value parent"><span class="pip">C</span>Deity</div></div>
+            <div class="field-row"><div class="field-label">Relationships</div><div class="field-value" style="color:var(--text-faint);font-style:italic;">+ Add relationship</div></div>
+            <div class="field-row"><div class="field-label">Statistics</div><div class="field-value">3 subclasses · — instances</div></div>
+          </div>
+          <div class="pane-body graph" id="body-d-graph" style="display:none;">
+            <div class="graph-canvas" id="canvas-d"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sketch toolbar -->
+  <div class="sketch-tools">
+    <span style="opacity:0.6">Theme</span>
+    <button onclick="toggleTheme()" id="theme-btn">☀ Light</button>
+  </div>
+
+  <script>
+    function show(id, btn) {
+      document.querySelectorAll('.variant').forEach(v => v.style.display = 'none');
+      document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('variant-' + id).style.display = 'block';
+      btn.classList.add('active');
+      // Reset all graphs so they redraw at correct size
+      document.querySelectorAll('.graph-canvas').forEach(c => {
+        c.dataset.drawn = '';
+        while (c.firstChild) c.removeChild(c.firstChild);
+      });
+    }
+    function paneSwap(btn, scope) {
+      const strip = btn.parentElement;
+      strip.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const isGraph = btn.textContent.trim() === 'Graph';
+      const detail = document.getElementById('body-' + scope + '-detail');
+      const graph = document.getElementById('body-' + scope + '-graph');
+      if (detail && graph) {
+        detail.style.display = isGraph ? 'none' : 'block';
+        graph.style.display  = isGraph ? 'flex' : 'none';
+      }
+      if (isGraph) {
+        requestAnimationFrame(() => drawGraph(scope));
+      }
+    }
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next;
+      document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙 Dark' : '☀ Light';
+    }
+
+    /* === Graph renderer — uses the FULL pane width (which is now the wide right pane) === */
+    function drawGraph(scope) {
+      const canvas = document.getElementById('canvas-' + scope);
+      if (!canvas || canvas.dataset.drawn === '1') return;
+      canvas.dataset.drawn = '1';
+
+      const W = canvas.clientWidth;
+      const H = canvas.clientHeight;
+      const cx = W / 2;
+
+      // Realistic neighborhood: parent (Deity), focus (Triune God),
+      // a sibling (Angel — for read-only "see siblings" use case),
+      // and three children.
+      const nodes = [
+        { id: 'deity',   label: 'Deity',           x: cx - 50, y: 36,  cls: 'parent'  },
+        { id: 'angel',   label: 'Angel',           x: cx - 220, y: 130, cls: 'sibling' },
+        { id: 'focus',   label: 'Triune God',      x: cx - 60, y: 130, cls: 'focus'   },
+        { id: 'father',  label: 'God the Father',  x: cx - 250, y: 280, cls: 'child'   },
+        { id: 'spirit',  label: 'God the Holy Spirit', x: cx - 80, y: 280, cls: 'child' },
+        { id: 'son',     label: 'God the Son',     x: cx + 110, y: 280, cls: 'child'  },
+      ];
+      const edges = [
+        ['deity', 'focus'],
+        ['deity', 'angel'],
+        ['focus', 'father'],
+        ['focus', 'spirit'],
+        ['focus', 'son'],
+      ];
+
+      // Toolbar
+      const toolbar = document.createElement('div');
+      toolbar.className = 'graph-toolbar';
+      toolbar.innerHTML = `
+        <button title="Toggle direction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="6 11 12 17 18 11"/></svg> Top-down</button>
+        <button title="Show all descendants">Descendants</button>
+        <button title="Reset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Reset</button>
+      `;
+      canvas.appendChild(toolbar);
+
+      const expand = document.createElement('button');
+      expand.className = 'expand-btn';
+      expand.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Expand`;
+      expand.onclick = () => alert('Opens EntityGraphModal — see sketch 003');
+      canvas.appendChild(expand);
+
+      const counter = document.createElement('div');
+      counter.className = 'graph-counter';
+      counter.textContent = `${nodes.length} nodes · ${edges.length} edges`;
+      canvas.appendChild(counter);
+
+      // Nodes
+      const nodeEls = {};
+      nodes.forEach(n => {
+        const el = document.createElement('div');
+        el.className = 'graph-node ' + n.cls;
+        el.textContent = n.label;
+        el.style.left = n.x + 'px';
+        el.style.top = n.y + 'px';
+        el.title = n.cls === 'sibling' ? 'Sibling — same parent (Deity)' : n.label;
+        canvas.appendChild(el);
+        nodeEls[n.id] = el;
+      });
+
+      // Edges
+      requestAnimationFrame(() => {
+        edges.forEach(([from, to]) => {
+          const a = nodeEls[from].getBoundingClientRect();
+          const b = nodeEls[to].getBoundingClientRect();
+          const cRect = canvas.getBoundingClientRect();
+          const x1 = a.left - cRect.left + a.width/2;
+          const y1 = a.top  - cRect.top + a.height;
+          const x2 = b.left - cRect.left + b.width/2;
+          const y2 = b.top  - cRect.top;
+          const dx = x2 - x1, dy = y2 - y1;
+          const len = Math.sqrt(dx*dx + dy*dy);
+          const angle = Math.atan2(dy, dx);
+          const edge = document.createElement('div');
+          edge.className = 'graph-edge graph-arrow';
+          edge.style.left = x1 + 'px';
+          edge.style.top  = y1 + 'px';
+          edge.style.width = (len - 8) + 'px';
+          edge.style.transform = 'rotate(' + angle + 'rad)';
+          canvas.appendChild(edge);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
