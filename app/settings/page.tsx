@@ -330,16 +330,17 @@ function EditorPreferencesSection() {
   const setTheme = useEditorModeStore((s) => s.setTheme);
   const preferEditMode = useEditorModeStore((s) => s.preferEditMode);
   const setPreferEditMode = useEditorModeStore((s) => s.setPreferEditMode);
-  const [highlightedSetting, setHighlightedSetting] = useState<string | null>(null);
+  const [highlightedSetting, setHighlightedSetting] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.location.hash.slice(1) || null;
+  });
 
-  // Highlight and scroll to the setting referenced by the URL hash
+  // Scroll to the setting referenced by the URL hash and clear the highlight after 2 s
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     if (!hash) return;
     const el = document.getElementById(hash);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    setHighlightedSetting(hash);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     const timer = setTimeout(() => setHighlightedSetting(null), 2000);
     return () => clearTimeout(timer);
   }, []);
