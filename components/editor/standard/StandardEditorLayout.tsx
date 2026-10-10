@@ -296,6 +296,7 @@ export function StandardEditorLayout(props: StandardEditorLayoutProps) {
     projectId,
     accessToken,
     branch: activeBranch,
+    searchQuery,
   });
 
   const handleSearchSelect = (iri: string) => {

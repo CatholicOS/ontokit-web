@@ -331,6 +331,7 @@ export function DeveloperEditorLayout(props: DeveloperEditorLayoutProps) {
     projectId,
     accessToken,
     branch: activeBranch,
+    searchQuery,
   });
 
   const handleSearchSelect = (iri: string) => {
