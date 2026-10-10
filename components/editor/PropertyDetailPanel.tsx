@@ -25,7 +25,8 @@ import { LanguagePicker } from "@/components/editor/LanguagePicker";
 import { AnnotationRow } from "@/components/editor/standard/AnnotationRow";
 import { InlineAnnotationAdder } from "@/components/editor/standard/InlineAnnotationAdder";
 import { RelationshipSection, type RelationshipGroup, type RelationshipTarget } from "@/components/editor/standard/RelationshipSection";
-import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, SEE_ALSO_IRI, getAnnotationPropertyInfo } from "@/lib/ontology/annotationProperties";
+import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, SEE_ALSO_IRI, getAnnotationPropertyInfo, getAnnotationCardinality } from "@/lib/ontology/annotationProperties";
+import { ensureTrailingPlaceholder, usedLanguages } from "@/lib/ontology/annotationCardinality";
 import { AutoSaveAffordanceBar } from "@/components/editor/AutoSaveAffordanceBar";
 import { useEntityAutoSave } from "@/lib/hooks/useEntityAutoSave";
 import { useToast } from "@/lib/context/ToastContext";
@@ -38,13 +39,6 @@ import {
 import { type PropertyDraftEntry } from "@/lib/stores/draftStore";
 import { useIriLabels } from "@/lib/hooks/useIriLabels";
 
-/** Ensure an array of localized strings always ends with an empty placeholder row */
-function ensureTrailingEmpty(arr: LocalizedString[]): LocalizedString[] {
-  if (arr.length === 0 || arr[arr.length - 1].value.trim() !== "") {
-    return [...arr, { value: "", lang: "en" }];
-  }
-  return arr;
-}
 
 const PROPERTY_TYPE_LABELS: Record<PropertyType, { label: string; letter: string; color: string }> = {
   object: { label: "Object Property", letter: "O", color: "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-400" },
@@ -209,8 +203,8 @@ export function PropertyDetailPanel({
   const initEditState = useCallback((d: ParsedPropertyDetail) => {
     setEditPropertyType(d.propertyType);
     setEditLabels(d.labels.length > 0 ? d.labels.map((l) => ({ ...l })) : [{ value: "", lang: "en" }]);
-    setEditComments(ensureTrailingEmpty(d.comments.map((c) => ({ ...c }))));
-    setEditDefinitions(ensureTrailingEmpty(d.definitions.map((def) => ({ ...def }))));
+    setEditComments(ensureTrailingPlaceholder(d.comments.map((c) => ({ ...c })), "multiple"));
+    setEditDefinitions(ensureTrailingPlaceholder(d.definitions.map((def) => ({ ...def })), "single-per-lang"));
     setEditDomainIris([...d.domainIris]);
     setEditRangeIris([...d.rangeIris]);
     setEditParentIris([...d.parentIris]);
@@ -240,7 +234,7 @@ export function PropertyDetailPanel({
     // Annotations: filter out definition (shown in its own section)
     const regularAnnotations = d.annotations
       .filter((a) => a.property_iri !== DEFINITION_IRI)
-      .map((a) => ({ ...a, values: ensureTrailingEmpty(a.values.map((v) => ({ ...v }))) }));
+      .map((a) => ({ ...a, values: ensureTrailingPlaceholder(a.values.map((v) => ({ ...v })), getAnnotationCardinality(a.property_iri)) }));
 
     if (!regularAnnotations.find((a) => a.property_iri === DEFINITION_IRI)) {
       // Don't add definition here — it has its own section
@@ -292,8 +286,8 @@ export function PropertyDetailPanel({
       const d = restoredDraft as PropertyDraftEntry;
       setEditPropertyType(d.propertyType);
       setEditLabels(d.labels);
-      setEditComments(ensureTrailingEmpty(d.comments));
-      setEditDefinitions(ensureTrailingEmpty(d.definitions));
+      setEditComments(ensureTrailingPlaceholder(d.comments, "multiple"));
+      setEditDefinitions(ensureTrailingPlaceholder(d.definitions, "single-per-lang"));
       setEditDomainIris(d.domainIris);
       setEditRangeIris(d.rangeIris);
       setEditParentIris(d.parentIris);
@@ -321,20 +315,20 @@ export function PropertyDetailPanel({
   }, [triggerSave]);
 
   const updateComment = useCallback((index: number, field: "value" | "lang", val: string) => {
-    setEditComments((prev) => ensureTrailingEmpty(prev.map((c, i) => (i === index ? { ...c, [field]: val } : c))));
+    setEditComments((prev) => ensureTrailingPlaceholder(prev.map((c, i) => (i === index ? { ...c, [field]: val } : c)), "multiple"));
   }, []);
 
   const removeComment = useCallback((index: number) => {
-    setEditComments((prev) => ensureTrailingEmpty(prev.filter((_, i) => i !== index)));
+    setEditComments((prev) => ensureTrailingPlaceholder(prev.filter((_, i) => i !== index), "multiple"));
     requestAnimationFrame(() => triggerSave());
   }, [triggerSave]);
 
   const updateDefinition = useCallback((index: number, field: "value" | "lang", val: string) => {
-    setEditDefinitions((prev) => ensureTrailingEmpty(prev.map((d, i) => (i === index ? { ...d, [field]: val } : d))));
+    setEditDefinitions((prev) => ensureTrailingPlaceholder(prev.map((d, i) => (i === index ? { ...d, [field]: val } : d)), "single-per-lang"));
   }, []);
 
   const removeDefinition = useCallback((index: number) => {
-    setEditDefinitions((prev) => ensureTrailingEmpty(prev.filter((_, i) => i !== index)));
+    setEditDefinitions((prev) => ensureTrailingPlaceholder(prev.filter((_, i) => i !== index), "single-per-lang"));
     requestAnimationFrame(() => triggerSave());
   }, [triggerSave]);
 
@@ -344,7 +338,7 @@ export function PropertyDetailPanel({
         prev.map((a) => {
           if (a.property_iri !== propertyIri) return a;
           const updated = a.values.map((v, vi) => (vi === valueIdx ? { ...v, [field]: val } : v));
-          return { ...a, values: ensureTrailingEmpty(updated) };
+          return { ...a, values: ensureTrailingPlaceholder(updated, getAnnotationCardinality(propertyIri)) };
         })
       );
     },
@@ -357,7 +351,7 @@ export function PropertyDetailPanel({
         prev.map((a) => {
           if (a.property_iri !== propertyIri) return a;
           const filtered = a.values.filter((_, vi) => vi !== valueIdx);
-          return { ...a, values: ensureTrailingEmpty(filtered) };
+          return { ...a, values: ensureTrailingPlaceholder(filtered, getAnnotationCardinality(propertyIri)) };
         })
       );
       requestAnimationFrame(() => triggerSave());
@@ -500,7 +494,7 @@ export function PropertyDetailPanel({
                 {editLabels.map((label, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <input type="text" value={label.value} onChange={(e) => updateLabel(index, "value", e.target.value)} onBlur={() => triggerSave()} placeholder="Label text" className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm focus:border-primary-500 focus:outline-hidden focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white" />
-                    <LanguagePicker value={label.lang} onChange={(code) => { updateLabel(index, "lang", code); triggerSave(); }} />
+                    <LanguagePicker excludeCodes={usedLanguages(editLabels, "single-per-lang")} value={label.lang} onChange={(code) => { updateLabel(index, "lang", code); triggerSave(); }} />
                     {editLabels.length > 1 ? (
                       <button onClick={() => removeLabel(index)} className="rounded-sm p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400" title="Remove"><Trash2 className="h-3.5 w-3.5" /></button>
                     ) : (
@@ -530,6 +524,7 @@ export function PropertyDetailPanel({
                   <AnnotationRow
                     key={index}
                     propertyIri={DEFINITION_IRI}
+                    excludeLangs={usedLanguages(editDefinitions, getAnnotationCardinality(DEFINITION_IRI))}
                     value={def.value}
                     lang={def.lang}
                     onValueChange={(v) => updateDefinition(index, "value", v)}
@@ -719,6 +714,7 @@ export function PropertyDetailPanel({
                       <AnnotationRow
                         key={`${ann.property_iri}-${vi}`}
                         propertyIri={ann.property_iri}
+                        excludeLangs={usedLanguages(ann.values, getAnnotationCardinality(ann.property_iri))}
                         value={v.value}
                         lang={v.lang}
                         onValueChange={(val) => updateAnnotationValue(ann.property_iri, vi, "value", val)}

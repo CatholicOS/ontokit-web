@@ -37,7 +37,8 @@ import { ParentClassPicker } from "@/components/editor/ParentClassPicker";
 import { AnnotationRow } from "@/components/editor/standard/AnnotationRow";
 import { InlineAnnotationAdder } from "@/components/editor/standard/InlineAnnotationAdder";
 import { RelationshipSection, type RelationshipGroup, type RelationshipTarget } from "@/components/editor/standard/RelationshipSection";
-import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, RELATIONSHIP_PROPERTY_IRIS, SEE_ALSO_IRI, getAnnotationPropertyInfo } from "@/lib/ontology/annotationProperties";
+import { LABEL_IRI, COMMENT_IRI, DEFINITION_IRI, RELATIONSHIP_PROPERTY_IRIS, SEE_ALSO_IRI, getAnnotationPropertyInfo, getAnnotationCardinality } from "@/lib/ontology/annotationProperties";
+import { ensureTrailingPlaceholder, usedLanguages } from "@/lib/ontology/annotationCardinality";
 import { AutoSaveAffordanceBar } from "@/components/editor/AutoSaveAffordanceBar";
 import { CrossReferencesPanel } from "@/components/editor/CrossReferencesPanel";
 import { SimilarConceptsPanel } from "@/components/editor/SimilarConceptsPanel";
@@ -45,12 +46,9 @@ import { EntityHistoryTab } from "@/components/editor/EntityHistoryTab";
 import { useAutoSave } from "@/lib/hooks/useAutoSave";
 import { useToast } from "@/lib/context/ToastContext";
 
-/** Ensure an array of localized strings always ends with an empty placeholder row */
+/** @deprecated Use ensureTrailingPlaceholder from lib/ontology/annotationCardinality with an explicit cardinality. */
 export function ensureTrailingEmpty(arr: LocalizedString[]): LocalizedString[] {
-  if (arr.length === 0 || arr[arr.length - 1].value.trim() !== "") {
-    return [...arr, { value: "", lang: "en" }];
-  }
-  return arr;
+  return ensureTrailingPlaceholder(arr, "multiple");
 }
 
 /** Minimal data from the tree node, used as fallback when the API has no data yet */
@@ -199,7 +197,7 @@ export function ClassDetailPanel({
       } else {
         regularAnnotations.push({
           property_iri: a.property_iri,
-          values: ensureTrailingEmpty(a.values.map((v) => ({ ...v }))),
+          values: ensureTrailingPlaceholder(a.values.map((v) => ({ ...v })), getAnnotationCardinality(a.property_iri)),
         });
       }
     }
@@ -426,7 +424,7 @@ export function ClassDetailPanel({
         prev.map((a) => {
           if (a.property_iri !== propertyIri) return a;
           const updated = a.values.map((v, vi) => (vi === valueIdx ? { ...v, [field]: newVal } : v));
-          return { ...a, values: ensureTrailingEmpty(updated) };
+          return { ...a, values: ensureTrailingPlaceholder(updated, getAnnotationCardinality(propertyIri)) };
         })
       );
     },
@@ -439,7 +437,7 @@ export function ClassDetailPanel({
         prev.map((a) => {
           if (a.property_iri !== propertyIri) return a;
           const filtered = a.values.filter((_, vi) => vi !== valueIdx);
-          return { ...a, values: ensureTrailingEmpty(filtered) };
+          return { ...a, values: ensureTrailingPlaceholder(filtered, getAnnotationCardinality(propertyIri)) };
         })
       );
       requestAnimationFrame(() => triggerSave());
@@ -666,6 +664,7 @@ export function ClassDetailPanel({
                       className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm focus:border-primary-500 focus:outline-hidden focus:ring-1 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                     />
                     <LanguagePicker
+                      excludeCodes={usedLanguages(editLabels, "single-per-lang")}
                       value={label.lang}
                       onChange={(code) => {
                         updateLabel(index, "lang", code);
@@ -718,6 +717,7 @@ export function ClassDetailPanel({
                         <AnnotationRow
                           key={vIdx}
                           propertyIri={DEFINITION_IRI}
+                          excludeLangs={usedLanguages(defValues, getAnnotationCardinality(DEFINITION_IRI))}
                           value={val.value}
                           lang={val.lang}
                           onValueChange={(v) => updateAnnotationValue(DEFINITION_IRI, vIdx, "value", v)}
@@ -829,6 +829,7 @@ export function ClassDetailPanel({
                               <AnnotationRow
                                 key={vIdx}
                                 propertyIri={annotation.property_iri}
+                                excludeLangs={usedLanguages(annotation.values, getAnnotationCardinality(annotation.property_iri))}
                                 value={val.value}
                                 lang={val.lang}
                                 onValueChange={(v) => updateAnnotationValue(annotation.property_iri, vIdx, "value", v)}
@@ -869,16 +870,17 @@ export function ClassDetailPanel({
                     onAdd={(propertyIri, value, lang) => {
                       setEditAnnotations((prev) => {
                         const existing = prev.find((a) => a.property_iri === propertyIri);
+                        const cardinality = getAnnotationCardinality(propertyIri);
                         if (existing) {
                           return prev.map((a) =>
                             a.property_iri === propertyIri
-                              ? { ...a, values: ensureTrailingEmpty([...a.values, { value, lang }]) }
+                              ? { ...a, values: ensureTrailingPlaceholder([...a.values, { value, lang }], cardinality) }
                               : a
                           );
                         }
                         return [
                           ...prev,
-                          { property_iri: propertyIri, values: ensureTrailingEmpty([{ value, lang }]) },
+                          { property_iri: propertyIri, values: ensureTrailingPlaceholder([{ value, lang }], cardinality) },
                         ];
                       });
                       requestAnimationFrame(() => triggerSave());
