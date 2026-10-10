@@ -13,7 +13,7 @@ vi.mock("@/lib/api/lint", () => ({
     getLintConfig: vi.fn(),
     getLevels: vi.fn(),
   },
-  createLintWebSocket: vi.fn(() => ({ close: vi.fn() })),
+  createLintWebSocket: vi.fn(() => ({ close: vi.fn(), addEventListener: vi.fn() })),
 }));
 
 vi.mock("@/lib/api/quality", () => ({
@@ -133,7 +133,7 @@ describe("HealthCheckPanel", () => {
       checked_at: "",
       duration_ms: 0,
     });
-    mockCreateLintWebSocket.mockReturnValue({ close: vi.fn() } as unknown as WebSocket);
+    mockCreateLintWebSocket.mockReturnValue({ close: vi.fn(), addEventListener: vi.fn() } as unknown as WebSocket);
     mockQualityApi.getLatestDuplicates.mockResolvedValue({
       clusters: [],
       threshold: 0.85,
@@ -1809,7 +1809,7 @@ describe("HealthCheckPanel", () => {
     mockCreateLintWebSocket.mockImplementation(
       (_projectId: string, onMessage: (msg: LintWebSocketMessage) => void) => {
         capturedLintOnMessage = onMessage;
-        return { close: vi.fn() } as unknown as WebSocket;
+        return { close: vi.fn(), addEventListener: vi.fn() } as unknown as WebSocket;
       }
     );
 
@@ -2075,6 +2075,76 @@ describe("HealthCheckPanel", () => {
 
     // Restore the synchronous mock for other tests
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => { cb(0); return 0; });
+  });
+
+  describe("onWsStatusChange callbacks", () => {
+    it("calls onWsStatusChange('disconnected') immediately when isOpen is false", () => {
+      const onWsStatusChange = vi.fn();
+      setup({ isOpen: false, onWsStatusChange });
+      expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
+    });
+
+    it("calls onWsStatusChange('connecting') then 'connected' when WS opens", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const onWsStatusChange = vi.fn();
+        const captured: { openListener: (() => void) | null } = { openListener: null };
+        mockCreateLintWebSocket.mockImplementation(
+          (_projectId: string, _onMessage: (msg: LintWebSocketMessage) => void) => {
+            const ws = { close: vi.fn(), addEventListener: vi.fn((event: string, cb: () => void) => {
+              if (event === "open") captured.openListener = cb;
+            }) };
+            return ws as unknown as WebSocket;
+          }
+        );
+
+        setup({ onWsStatusChange });
+        expect(onWsStatusChange).toHaveBeenCalledWith("connecting");
+
+        await vi.advanceTimersByTimeAsync(110);
+        captured.openListener?.();
+        expect(onWsStatusChange).toHaveBeenCalledWith("connected");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("calls onWsStatusChange('disconnected') when WS closes", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const onWsStatusChange = vi.fn();
+        const captured: { closeListener: (() => void) | null } = { closeListener: null };
+        mockCreateLintWebSocket.mockImplementation(
+          (_projectId: string, _onMessage: (msg: LintWebSocketMessage) => void) => {
+            const ws = { close: vi.fn(), addEventListener: vi.fn((event: string, cb: () => void) => {
+              if (event === "close") captured.closeListener = cb;
+            }) };
+            return ws as unknown as WebSocket;
+          }
+        );
+
+        setup({ onWsStatusChange });
+        await vi.advanceTimersByTimeAsync(110);
+        captured.closeListener?.();
+        expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("calls onWsStatusChange('disconnected') on cleanup", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const onWsStatusChange = vi.fn();
+        const { unmount } = setup({ onWsStatusChange });
+        await vi.advanceTimersByTimeAsync(110);
+        onWsStatusChange.mockClear();
+        unmount();
+        expect(onWsStatusChange).toHaveBeenCalledWith("disconnected");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   it("does not reopen the lint WebSocket when the issue filter changes", async () => {

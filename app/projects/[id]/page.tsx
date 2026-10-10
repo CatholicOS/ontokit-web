@@ -20,6 +20,8 @@ import { useSelectionStore } from "@/lib/stores/selectionStore";
 import { useToast } from "@/lib/context/ToastContext";
 import { useProject, derivePermissions } from "@/lib/hooks/useProject";
 import type { OntologySourceEditorRef } from "@/components/editor/OntologySourceEditor";
+import { ConnectionStatus } from "@/components/ui/ConnectionStatus";
+import { useCollaborationStatus } from "@/lib/hooks/useCollaborationStatus";
 
 export default function ProjectViewerPage() {
   const { data: session, status } = useSession();
@@ -190,6 +192,8 @@ function ViewerContent({
     activeBranch: resolvedBranch,
   });
 
+  const collaboration = useCollaborationStatus({ projectId });
+
   const {
     project, canManage, canSuggest, hasValidAccess,
     nodes, totalClasses, isTreeLoading, treeError,
@@ -274,6 +278,15 @@ function ViewerContent({
               <ModeSwitcher />
             </div>
             <div className="flex items-center gap-2">
+              {/* WebSocket Connection Status */}
+              <div className="flex items-center gap-1">
+                <ConnectionStatus
+                  state={collaboration.status}
+                  purpose={collaboration.purpose}
+                  endpoint={collaboration.endpoint}
+                />
+              </div>
+
               {/* Share */}
               <ShareButton
                 projectId={projectId}

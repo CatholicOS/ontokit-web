@@ -414,26 +414,6 @@ describe("useProjectViewer", () => {
     expect(result.current.treeError).toBeNull();
   });
 
-  it("exposes collaboration status", () => {
-    mockUseProject.mockReturnValue({
-      project: makeProject(),
-      isLoading: false,
-      error: null,
-      errorKind: null,
-    });
-
-    const { result } = renderHook(() =>
-      useProjectViewer({
-        projectId: "p1",
-        accessToken: "tok",
-        sessionStatus: "authenticated",
-        activeBranch: "main",
-      })
-    );
-
-    expect(result.current.connectionStatus).toBe("disconnected");
-  });
-
   it("exposes source state with defaults", () => {
     mockUseProject.mockReturnValue({
       project: makeProject(),

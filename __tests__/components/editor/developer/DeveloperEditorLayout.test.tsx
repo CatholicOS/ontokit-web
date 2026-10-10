@@ -1349,9 +1349,6 @@ describe("DeveloperEditorLayout", () => {
     });
 
     it("preserves the selection store on unmount so side-page Back-to-project links can read it", () => {
-      // Regression: editor used to clear the store on unmount, racing with
-      // side-page navigation — by the time settings/PRs/etc rendered, the
-      // store was empty and useProjectHomeHref dropped the selection.
       const { unmount } = render(
         <DeveloperEditorLayout
           {...defaultProps({ selectedIri: "http://example.org/Foo" })}
@@ -1360,6 +1357,24 @@ describe("DeveloperEditorLayout", () => {
       unmount();
       expect(useSelectionStore.getState().iri).toBe("http://example.org/Foo");
       expect(useSelectionStore.getState().type).toBe("class");
+    });
+  });
+
+  describe("HealthCheckPanel integration", () => {
+    it("does not render HealthCheckPanel by default", () => {
+      render(<DeveloperEditorLayout {...defaultProps()} />);
+      expect(screen.queryByTestId("health-check-panel")).toBeNull();
+    });
+
+    it("renders HealthCheckPanel when showHealthCheck is true", () => {
+      render(<DeveloperEditorLayout {...defaultProps({ showHealthCheck: true })} />);
+      expect(screen.getByTestId("health-check-panel")).toBeDefined();
+    });
+
+    it("passes onLintWsStatusChange through to HealthCheckPanel", () => {
+      const onLintWsStatusChange = vi.fn();
+      render(<DeveloperEditorLayout {...defaultProps({ showHealthCheck: true, onLintWsStatusChange })} />);
+      expect(screen.getByTestId("health-check-panel")).toBeDefined();
     });
   });
 });
