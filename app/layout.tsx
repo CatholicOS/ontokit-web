@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { Inter, JetBrains_Mono, Noto_Color_Emoji } from "next/font/google";
 
 import "./globals.css";
@@ -28,13 +30,20 @@ export const metadata: Metadata = {
   keywords: ["ontology", "OWL", "RDF", "semantic web", "knowledge graph", "collaboration"],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // next-intl resolves the locale from the NEXT_LOCALE cookie, falling back to
+  // Accept-Language and then to "en" (see lib/i18n/request.ts). Both the locale
+  // and the messages have to be handed to the client provider here — without it
+  // every `useTranslations()` call in a client component throws.
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function(){try{var s=JSON.parse(localStorage.getItem("ontokit-editor-preferences")||"{}");var t=(s.state&&s.state.theme)||"system";if(t==="dark")document.documentElement.classList.add("dark");else if(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.classList.add("dark")}catch(e){}})()`}
@@ -42,7 +51,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} ${notoColorEmoji.variable} font-sans antialiased`}>
         <a href="#main-content" className="skip-link">Skip to main content</a>
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 // Zitadel configuration
 const ZITADEL_ISSUER = process.env.NEXT_PUBLIC_ZITADEL_ISSUER || "http://localhost:8080";
@@ -13,6 +14,7 @@ export function UserMenu() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("auth");
 
   // Handle federated logout (sign out from both NextAuth and Zitadel)
   const handleSignOut = async () => {
@@ -47,7 +49,7 @@ export function UserMenu() {
         onClick={() => signIn("zitadel")}
         className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
       >
-        Sign in
+        {t("signIn")}
       </button>
     );
   }
@@ -61,7 +63,7 @@ export function UserMenu() {
         {session.user?.image ? (
           <Image
             src={session.user.image}
-            alt={session.user.name || "User avatar"}
+            alt={session.user.name || t("userAvatar")}
             width={32}
             height={32}
             className="rounded-full"
@@ -89,13 +91,13 @@ export function UserMenu() {
               onClick={() => setIsOpen(false)}
               className="block w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
             >
-              Settings
+              {t("settings")}
             </Link>
             <button
               onClick={handleSignOut}
               className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
             >
-              Sign out
+              {t("signOut")}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import { renderWithIntl as render } from "../../helpers/renderWithIntl";
 import { ConnectionStatus } from "@/components/ui/ConnectionStatus";
 import type { ConnectionState } from "@/components/ui/ConnectionStatus";
 
