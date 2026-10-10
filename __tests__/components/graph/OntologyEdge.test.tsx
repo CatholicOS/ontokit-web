@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Position } from "@xyflow/react";
+
 import { OntologyEdge } from "@/components/graph/OntologyEdge";
 
 vi.mock("@xyflow/react", () => ({
@@ -16,7 +17,16 @@ vi.mock("@xyflow/react", () => ({
     <div data-testid="edge-label-renderer">{children}</div>
   ),
   getBezierPath: (): [string, number, number] => ["M0,0 C10,10 20,20 30,30", 15, 15],
+  getSmoothStepPath: (): [string, number, number] => ["M0,0 L10,10 L30,30", 15, 15],
   Position: { Top: "top", Bottom: "bottom", Left: "left", Right: "right" },
+}));
+
+// Mock the editor mode store — OntologyEdge subscribes for graphEdgeStyle.
+// Without this, Zustand's persist middleware initializes against window.matchMedia
+// (system theme detection), which jsdom doesn't ship.
+vi.mock("@/lib/stores/editorModeStore", () => ({
+  useEditorModeStore: (selector: (s: { graphEdgeStyle: string }) => unknown) =>
+    selector({ graphEdgeStyle: "smoothstep" }),
 }));
 
 describe("OntologyEdge", () => {
@@ -49,7 +59,30 @@ describe("OntologyEdge", () => {
     );
     const edge = screen.getByTestId("base-edge-edge-1");
     expect(edge).toBeDefined();
+    // Default edge type is subClassOf: solid stroke in slate color, strokeWidth 1.5
+    expect(edge.style.stroke).toBe("rgb(148, 163, 184)"); // #94a3b8
+    expect(edge.style.strokeWidth).toBe("1.5");
+    expect(edge.style.strokeDasharray).toBeFalsy();
+  });
+
+  it("uses config-based markerEnd for subClassOf edges", () => {
+    render(
+      <svg>
+        <OntologyEdge {...baseProps} data={{ edgeType: "subClassOf" }} />
+      </svg>
+    );
+    const edge = screen.getByTestId("base-edge-edge-1");
     expect(edge.getAttribute("data-marker-end")).toBe("url(#arrow-slate)");
+  });
+
+  it("does not apply markerEnd for non-subClassOf edges", () => {
+    render(
+      <svg>
+        <OntologyEdge {...baseProps} data={{ edgeType: "seeAlso" }} />
+      </svg>
+    );
+    const edge = screen.getByTestId("base-edge-edge-1");
+    expect(edge.getAttribute("data-marker-end")).toBe("");
   });
 
   it("renders with equivalentClass edge type", () => {
@@ -86,7 +119,7 @@ describe("OntologyEdge", () => {
       </svg>
     );
     const edge = screen.getByTestId("base-edge-edge-1");
-    expect(edge.style.strokeDasharray).toBe("2 4");
+    expect(edge.style.strokeDasharray).toBe("6 3");
   });
 
   it("does not show label by default (not hovered)", () => {
@@ -146,7 +179,10 @@ describe("OntologyEdge", () => {
       </svg>
     );
     const edge = screen.getByTestId("base-edge-edge-1");
-    expect(edge.getAttribute("data-marker-end")).toBe("url(#arrow-slate)");
+    // Without data, edge defaults to subClassOf style
+    expect(edge.style.stroke).toBe("rgb(148, 163, 184)");
+    expect(edge.style.strokeWidth).toBe("1.5");
+    expect(edge.style.strokeDasharray).toBeFalsy();
   });
 
   it("renders invisible hover detection path with strokeWidth 16", () => {
@@ -161,5 +197,16 @@ describe("OntologyEdge", () => {
       (p) => p.getAttribute("stroke") === "transparent"
     );
     expect(hoverPath?.getAttribute("stroke-width")).toBe("16");
+  });
+
+  it("renders smoothstep path when graphEdgeStyle is 'smoothstep' (per store mock)", () => {
+    render(
+      <svg>
+        <OntologyEdge {...baseProps} />
+      </svg>
+    );
+    const edge = screen.getByTestId("base-edge-edge-1");
+    // Default mock returns "smoothstep" — getSmoothStepPath is invoked.
+    expect(edge.getAttribute("d")).toBe("M0,0 L10,10 L30,30");
   });
 });

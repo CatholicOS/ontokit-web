@@ -13,7 +13,7 @@ import { ResizablePanelDivider } from "@/components/editor/ResizablePanelDivider
 import { EntityTreeToolbar } from "@/components/editor/shared/EntityTreeToolbar";
 import { useTreeSearch } from "@/lib/hooks/useTreeSearch";
 import { useFilteredTree } from "@/lib/hooks/useFilteredTree";
-import { Share2, ArrowLeft } from "lucide-react";
+import { Share2, ArrowLeft, Maximize2 } from "lucide-react";
 import { DraggableTreeWrapper } from "@/components/editor/shared/DraggableTreeWrapper";
 import { useTreeDragDrop, type DragMode } from "@/lib/hooks/useTreeDragDrop";
 import { useToast } from "@/lib/context/ToastContext";
@@ -30,13 +30,18 @@ const OntologyGraph = dynamic(
     ),
   }
 );
+
+const EntityGraphModal = dynamic(
+  () => import("@/components/graph/EntityGraphModal").then((mod) => mod.EntityGraphModal),
+  { ssr: false }
+);
 import type { ClassUpdatePayload } from "@/lib/api/client";
 import type { TurtlePropertyUpdateData } from "@/lib/ontology/turtlePropertyUpdater";
 import type { TurtleIndividualUpdateData } from "@/lib/ontology/turtleIndividualUpdater";
 import type { ClassTreeNode } from "@/lib/ontology/types";
 import { useDraftStore } from "@/lib/stores/draftStore";
 import { getLocalName } from "@/lib/utils";
-import { extractTreeLabelMap } from "@/lib/graph/buildGraphData";
+import { extractTreeLabelMap } from "@/lib/graph/utils";
 import { useAnnounce } from "@/components/ui/ScreenReaderAnnouncer";
 
 export interface StandardEditorLayoutProps {
@@ -212,6 +217,7 @@ export function StandardEditorLayout(props: StandardEditorLayoutProps) {
 
   // Graph view state
   const [showGraph, setShowGraph] = useState(false);
+  const [showGraphModal, setShowGraphModal] = useState(false);
 
   // Entity tab state
   const [activeTab, setActiveTab] = useState<EntityTab>("classes");
@@ -428,14 +434,22 @@ export function StandardEditorLayout(props: StandardEditorLayoutProps) {
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back to Details
               </button>
+              <div className="flex-1" />
+              <button
+                onClick={() => setShowGraphModal(true)}
+                className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
+                aria-label="Expand graph to full screen"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Expand
+              </button>
             </div>
             <div className="flex-1">
               <OntologyGraph
                 focusIri={selectedIri}
                 projectId={projectId}
-                accessToken={accessToken}
                 branch={activeBranch}
-                labelHints={treeLabelHints}
+                accessToken={accessToken}
                 onNavigateToClass={(iri) => {
                   setShowGraph(false);
                   navigateToNode(iri);
@@ -502,6 +516,23 @@ export function StandardEditorLayout(props: StandardEditorLayoutProps) {
           />
         )}
       </div>
+
+      {/* Full-screen graph modal */}
+      {showGraphModal && selectedIri && (
+        <EntityGraphModal
+          focusIri={selectedIri}
+          label={treeLabelHintsRecord[selectedIri] || getLocalName(selectedIri)}
+          projectId={projectId}
+          branch={activeBranch}
+          accessToken={accessToken}
+          onNavigateToClass={(iri) => {
+            setShowGraphModal(false);
+            setShowGraph(false);
+            navigateToNode(iri);
+          }}
+          onClose={() => setShowGraphModal(false)}
+        />
+      )}
     </div>
   );
 }

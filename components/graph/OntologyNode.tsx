@@ -13,6 +13,7 @@ export interface OntologyNodeData {
   deprecated?: boolean;
   childCount?: number;
   isExpanded?: boolean;
+  layoutDirection?: "TB" | "LR";
   onNavigate?: (iri: string) => void;
   onExpandNode?: (iri: string) => void;
 }
@@ -27,7 +28,9 @@ const nodeStyles: Record<GraphNodeType, string> = {
   class:
     "border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600",
   root:
-    "border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-500/70 font-medium",
+    "border-[3px] border-red-500 bg-red-50 dark:bg-red-950/30 dark:border-red-500/70 font-semibold",
+  secondary_root:
+    "border-2 border-slate-500 bg-slate-100 dark:bg-slate-700 dark:border-slate-400 font-semibold",
   individual:
     "border border-pink-300 bg-pink-50 dark:bg-pink-950/30 dark:border-pink-500/60",
   property:
@@ -53,29 +56,28 @@ export const OntologyNode = memo(function OntologyNode({
   data,
   id,
 }: OntologyNodeProps) {
-  const { label, nodeType, deprecated, childCount, isExpanded, onNavigate, onExpandNode } = data;
+  const { label, nodeType, deprecated, childCount, isExpanded, layoutDirection, onNavigate, onExpandNode } = data;
+  const targetPosition = layoutDirection === "LR" ? Position.Left : Position.Top;
+  const sourcePosition = layoutDirection === "LR" ? Position.Right : Position.Bottom;
 
-  const handleClick = () => {
+  // Mouse interactions are handled by ReactFlow's onNodeClick / onNodeDoubleClick
+  // at the parent level (OntologyGraph). Keyboard events here provide parity:
+  //   Enter / Space  → expand (matches single-click semantics)
+  //   Shift + Enter  → navigate (matches double-click semantics)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (nodeType === "external") return;
-    onNavigate?.(id);
-  };
-
-  const handleDoubleClick = () => {
-    if (nodeType === "unexplored") {
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      onNavigate?.(id);
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
       onExpandNode?.(id);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (nodeType === "unexplored") {
-        onExpandNode?.(id);
-      } else {
-        handleClick();
-      }
-    }
-  };
+  const expandable = nodeType !== "external";
 
   return (
     <div
@@ -85,12 +87,13 @@ export const OntologyNode = memo(function OntologyNode({
         "rounded-lg px-3 py-2 text-sm transition-shadow hover:shadow-lg cursor-pointer min-w-[120px] max-w-[200px]",
         nodeStyles[nodeType],
       )}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
-      aria-label={`${label}${nodeType === "unexplored" ? " (click to expand)" : ""}`}
+      aria-label={
+        `${label}` +
+        (expandable ? " — Enter to expand, Shift+Enter to navigate" : "")
+      }
     >
-      <Handle type="target" position={Position.Bottom} className="bg-slate-400! w-2! h-2! border-0!" />
+      <Handle type="target" position={targetPosition} className="bg-slate-400! w-2! h-2! border-0!" />
 
       <div className="flex items-center gap-1.5">
         {typeBadge[nodeType] && (
@@ -128,7 +131,7 @@ export const OntologyNode = memo(function OntologyNode({
         </span>
       )}
 
-      <Handle type="source" position={Position.Top} className="bg-slate-400! w-2! h-2! border-0!" />
+      <Handle type="source" position={sourcePosition} className="bg-slate-400! w-2! h-2! border-0!" />
     </div>
   );
 });
