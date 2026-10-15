@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import { qualityApi } from "@/lib/api/quality";
+import { useCrossReferences } from "@/lib/hooks/useCrossReferences";
 import { getLocalName } from "@/lib/utils";
-import type { CrossReferencesResponse, CrossReferenceGroup } from "@/lib/ontology/qualityTypes";
+import type { CrossReferenceGroup } from "@/lib/ontology/qualityTypes";
 
 interface DeleteImpactAnalysisProps {
   projectId: string;
@@ -21,36 +21,19 @@ export function DeleteImpactAnalysis({
   branch,
   onAcknowledge,
 }: DeleteImpactAnalysisProps) {
-  const [data, setData] = useState<CrossReferencesResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [fetchError, setFetchError] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
 
-  useEffect(() => {
-    if (!entityIri || !projectId) {
-      setData(null);
-      setIsExpanded(false);
-      setAcknowledged(false);
-      onAcknowledge(false);
-      setIsLoading(false);
-      setFetchError(false);
-      return;
-    }
-    setIsLoading(true);
-    setAcknowledged(false);
-    onAcknowledge(false);
-    setFetchError(false);
-    qualityApi
-      .getCrossReferences(projectId, entityIri, accessToken, branch)
-      .then(setData)
-      .catch(() => setFetchError(true))
-      .finally(() => setIsLoading(false));
-  }, [entityIri, projectId, accessToken, branch]); // eslint-disable-line react-hooks/exhaustive-deps
+  // React Query owns the fetch and its loading/error state, so nothing needs
+  // resetting on prop change. The parent additionally keys this component by
+  // entityIri, so `isExpanded` / `acknowledged` start fresh for each target.
+  const { data, isPending, isError } = useCrossReferences(projectId, entityIri, accessToken, branch);
 
   const total = data?.total ?? 0;
 
-  if (isLoading) {
+  if (!entityIri || !projectId) return null;
+
+  if (isPending) {
     return (
       <div className="flex items-center gap-2 py-2 text-sm text-slate-500">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
@@ -59,7 +42,7 @@ export function DeleteImpactAnalysis({
     );
   }
 
-  if (fetchError) {
+  if (isError) {
     return (
       <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-900/10">
         <div className="flex items-start gap-2">

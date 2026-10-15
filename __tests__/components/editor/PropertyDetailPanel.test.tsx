@@ -735,6 +735,54 @@ describe("PropertyDetailPanel", () => {
     expect(mockClearRestoredDraft).toHaveBeenCalled();
   });
 
+  it("still applies a restored draft when the source arrives on a later render", () => {
+    autoSaveOverrides = {
+      restoredDraft: {
+        entityType: "property",
+        propertyType: "object",
+        labels: [{ value: "Late Restored Label", lang: "en" }],
+        comments: [],
+        definitions: [],
+        domainIris: [],
+        rangeIris: [],
+        parentIris: [],
+        inverseOf: null,
+        characteristics: [],
+        annotations: [],
+        relationships: [],
+        deprecated: false,
+        equivalentIris: [],
+        disjointIris: [],
+        updatedAt: Date.now(),
+      },
+    };
+    const onUpdateProperty = vi.fn();
+    // First render has no source, so `detail` is null and the panel cannot seed
+    // anything yet — this is the real-world ordering, where sourceContent loads
+    // after mount. The draft must survive to the render where detail appears.
+    const { rerender } = render(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        sourceContent=""
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+    expect(screen.queryByTestId("auto-save-bar")).toBeNull();
+
+    rerender(
+      <PropertyDetailPanel
+        {...DEFAULT_PROPS}
+        canEdit={true}
+        onUpdateProperty={onUpdateProperty}
+      />
+    );
+
+    expect(screen.getByTestId("auto-save-bar")).not.toBeNull();
+    expect(screen.getByDisplayValue("Late Restored Label")).toBeDefined();
+    expect(mockClearRestoredDraft).toHaveBeenCalled();
+  });
+
   // ── flushToGit on unmount ──
 
   it("flushes pending draft to git on unmount", async () => {
