@@ -12,14 +12,17 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import type { EditorMode } from "@/lib/stores/editorModeStore";
 
 interface PRListItemProps {
   pr: PullRequest;
   projectId: string;
+  mode?: EditorMode;
   className?: string;
 }
 
-export function PRListItem({ pr, projectId, className }: PRListItemProps) {
+export function PRListItem({ pr, projectId, mode = "developer", className }: PRListItemProps) {
+  const isSuggestionMode = mode === "standard";
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -56,13 +59,13 @@ export function PRListItem({ pr, projectId, className }: PRListItemProps) {
       case "merged":
         return (
           <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-            Merged
+            {isSuggestionMode ? "Accepted" : "Merged"}
           </span>
         );
       case "closed":
         return (
           <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-            Closed
+            {isSuggestionMode ? "Rejected" : "Closed"}
           </span>
         );
       default:
@@ -116,7 +119,7 @@ export function PRListItem({ pr, projectId, className }: PRListItemProps) {
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {pr.status === "merged" && pr.merged_at
-                ? `merged ${formatDate(pr.merged_at)}`
+                ? `${isSuggestionMode ? "accepted" : "merged"} ${formatDate(pr.merged_at)}`
                 : `opened ${formatDate(pr.created_at)}`}
             </span>
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, GitPullRequest } from "lucide-react";
+import { ArrowLeft, Plus, GitPullRequest, Lightbulb } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { PRList } from "@/components/pr/PRList";
@@ -12,6 +12,7 @@ import { PRCreateModal } from "@/components/pr/PRCreateModal";
 import { BranchProvider } from "@/lib/context/BranchContext";
 import { useProject, derivePermissions } from "@/lib/hooks/useProject";
 import { useProjectHomeHref } from "@/lib/hooks/useProjectHomeHref";
+import { useEditorModeStore } from "@/lib/stores/editorModeStore";
 
 export default function PullRequestsPage() {
   const { data: session, status } = useSession();
@@ -20,9 +21,15 @@ export default function PullRequestsPage() {
   const projectId = params.id as string;
 
   const { project, isLoading, error } = useProject(projectId, session?.accessToken);
-  const { canEdit: canCreatePR } = derivePermissions(project, session?.accessToken);
+  const { canEdit: canCreatePR, canManage } = derivePermissions(project, session?.accessToken);
   const projectHomeHref = useProjectHomeHref(projectId);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const isSuggestionMode = editorMode === "standard";
+  // Reviewers see every contributor's work; everyone else sees only their own,
+  // which is what makes the "My …" title truthful (#65, "Admin/owner view").
+  const isReviewer = !!canManage;
+  const authorId = isReviewer ? undefined : session?.user?.id;
 
   if (isLoading || status === "loading") {
     return (
@@ -86,13 +93,23 @@ export default function PullRequestsPage() {
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <GitPullRequest className="h-8 w-8 text-slate-600 dark:text-slate-400" />
+              {isSuggestionMode
+                ? <Lightbulb className="h-8 w-8 text-amber-500 dark:text-amber-400" />
+                : <GitPullRequest className="h-8 w-8 text-slate-600 dark:text-slate-400" />}
               <div>
                 <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
-                  Pull Requests
+                  {isSuggestionMode
+                    ? isReviewer ? "Suggestions" : "My Suggestions"
+                    : isReviewer ? "Pull Requests" : "My Pull Requests"}
                 </h1>
                 <p className="text-sm text-slate-500">
-                  Review and manage proposed changes
+                  {isReviewer
+                    ? isSuggestionMode
+                      ? "Review and manage suggestions from all contributors"
+                      : "Review and manage proposed changes"
+                    : isSuggestionMode
+                      ? "Track the status of your proposed changes"
+                      : "Track the status of your pull requests"}
                 </p>
               </div>
             </div>
@@ -100,13 +117,18 @@ export default function PullRequestsPage() {
             {canCreatePR && (
               <Button onClick={() => setShowCreateModal(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
-                New Pull Request
+                {isSuggestionMode ? "New Suggestion" : "New Pull Request"}
               </Button>
             )}
           </div>
 
           {/* PR List */}
-          <PRList projectId={projectId} accessToken={session?.accessToken} />
+          <PRList
+            projectId={projectId}
+            accessToken={session?.accessToken}
+            mode={editorMode}
+            authorId={authorId}
+          />
 
           {/* Create Modal */}
           {session?.accessToken && (
