@@ -2920,12 +2920,6 @@ function RemoteSyncSection({
                 </div>
               </div>
 
-              {isWebhookDriven && (
-                <p className="text-xs text-indigo-500 dark:text-indigo-400">
-                  Repository fields are managed by the GitHub integration.
-                </p>
-              )}
-
               {/* Same-repo info when editing form matches GitHub integration */}
               {!isWebhookDriven && githubIntegration &&
                 repoOwner === githubIntegration.repo_owner &&
@@ -2975,6 +2969,12 @@ function RemoteSyncSection({
                   />
                 </div>
               </div>
+
+              {isWebhookDriven && (
+                <p className="text-xs text-indigo-500 dark:text-indigo-400">
+                  Repository fields are managed by the GitHub integration.
+                </p>
+              )}
 
               {/* Frequency + Update mode */}
               <div className="grid grid-cols-2 gap-3">
