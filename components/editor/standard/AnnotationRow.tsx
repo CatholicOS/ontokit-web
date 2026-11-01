@@ -17,6 +17,11 @@ interface AnnotationRowProps {
   showPropertyLabel?: boolean;
   /** Custom placeholder for the value input (defaults to "Value") */
   placeholder?: string;
+  /**
+   * Language tags to hide from this row's picker. Set for `single-per-lang`
+   * annotations so a language that already has a value can't be picked twice.
+   */
+  excludeLangs?: readonly string[];
 }
 
 export function AnnotationRow({
@@ -29,6 +34,7 @@ export function AnnotationRow({
   onBlur,
   showPropertyLabel = true,
   placeholder = "Value",
+  excludeLangs,
 }: AnnotationRowProps) {
   const { displayLabel, curie } = getAnnotationPropertyInfo(propertyIri);
   const isLongValue = value.length > 80;
@@ -65,6 +71,7 @@ export function AnnotationRow({
         />
       )}
       <LanguagePicker
+        excludeCodes={excludeLangs}
         value={lang}
         onChange={(code) => {
           onLangChange(code);

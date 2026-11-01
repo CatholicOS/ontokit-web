@@ -249,4 +249,63 @@ describe("LanguagePicker", () => {
 
     expect(screen.queryByText(/Use custom code/)).toBeNull();
   });
+
+  it("hides languages listed in excludeCodes", async () => {
+    render(<LanguagePicker value="" onChange={vi.fn()} excludeCodes={["fr", "de"]} />);
+    fireEvent.click(screen.getByLabelText("Language tag"));
+
+    await waitFor(() => {
+      expect(screen.getByText("English")).toBeDefined();
+    });
+
+    expect(screen.queryByText("French")).toBeNull();
+    expect(screen.queryByText("German")).toBeNull();
+  });
+
+  it("keeps the row's own language visible even when it is excluded", async () => {
+    render(<LanguagePicker value="fr" onChange={vi.fn()} excludeCodes={["en", "fr"]} />);
+    fireEvent.click(screen.getByLabelText("Language tag"));
+
+    await waitFor(() => {
+      expect(screen.getByText("French")).toBeDefined();
+    });
+
+    expect(screen.queryByText("English")).toBeNull();
+  });
+
+  it("matches excludeCodes case-insensitively", async () => {
+    render(<LanguagePicker value="" onChange={vi.fn()} excludeCodes={["FR"]} />);
+    fireEvent.click(screen.getByLabelText("Language tag"));
+
+    await waitFor(() => {
+      expect(screen.getByText("English")).toBeDefined();
+    });
+
+    expect(screen.queryByText("French")).toBeNull();
+  });
+
+  it("does not offer an excluded code through the custom-code escape hatch", async () => {
+    const user = userEvent.setup();
+    render(<LanguagePicker value="" onChange={vi.fn()} excludeCodes={["grc"]} />);
+    fireEvent.click(screen.getByLabelText("Language tag"));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Search languages...")).toBeDefined();
+    });
+
+    await user.type(screen.getByPlaceholderText("Search languages..."), "grc");
+
+    expect(screen.queryByText(/Use custom code/)).toBeNull();
+  });
+
+  it("shows the full list when excludeCodes is omitted", async () => {
+    render(<LanguagePicker value="en" onChange={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText("Language tag"));
+
+    await waitFor(() => {
+      expect(screen.getByText("French")).toBeDefined();
+    });
+
+    expect(screen.getByText("German")).toBeDefined();
+  });
 });
