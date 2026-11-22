@@ -9,6 +9,8 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { PRDetail } from "@/components/pr/PRDetail";
 import { projectApi, type Project } from "@/lib/api/projects";
+import { derivePermissions } from "@/lib/hooks/useProject";
+import { useEditorModeStore } from "@/lib/stores/editorModeStore";
 
 export default function PullRequestDetailPage() {
   const { data: session, status } = useSession();
@@ -19,6 +21,11 @@ export default function PullRequestDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const isSuggestionMode = editorMode === "standard";
+  // Must match the list page: reviewers browse everyone's, so their breadcrumb
+  // drops the "My" that would otherwise promise a personal list.
+  const { canManage } = derivePermissions(project, session?.accessToken);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -99,7 +106,9 @@ export default function PullRequestDetailPage() {
               className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200"
             >
               <ArrowLeft className="h-4 w-4" />
-              Pull Requests
+              {isSuggestionMode
+                ? canManage ? "Suggestions" : "My Suggestions"
+                : canManage ? "Pull Requests" : "My Pull Requests"}
             </Link>
           </div>
 
@@ -111,6 +120,7 @@ export default function PullRequestDetailPage() {
               accessToken={session?.accessToken}
               userRole={project.user_role}
               currentUserId={session?.user?.id}
+              mode={editorMode}
             />
           </div>
         </div>

@@ -8,12 +8,20 @@ import {
 } from "@/lib/api/pullRequests";
 import { PRListItem } from "./PRListItem";
 import { cn } from "@/lib/utils";
-import { GitPullRequest } from "lucide-react";
+import { GitPullRequest, Lightbulb } from "lucide-react";
+import type { EditorMode } from "@/lib/stores/editorModeStore";
 
 interface PRListProps {
   projectId: string;
   accessToken?: string;
   defaultStatus?: PRStatus | "all";
+  mode?: EditorMode;
+  /**
+   * Restrict the list to one author. Reviewers (owner/admin) leave this unset
+   * to see everyone's; everyone else passes their own id so a list titled
+   * "My Suggestions" / "My Pull Requests" actually only contains theirs.
+   */
+  authorId?: string;
   className?: string;
 }
 
@@ -21,8 +29,11 @@ export function PRList({
   projectId,
   accessToken,
   defaultStatus = "open",
+  mode = "developer",
+  authorId,
   className,
 }: PRListProps) {
+  const isSuggestionMode = mode === "standard";
   const [prs, setPrs] = useState<PullRequest[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,35 +42,53 @@ export function PRList({
   const [skip, setSkip] = useState(0);
   const limit = 20;
 
-  const loadPRs = useCallback(async () => {
-    if (!projectId) return;
+  // A reviewer on page 3 who switches to their own (much shorter) list would
+  // otherwise keep the stale offset and land on an empty page.
+  const [scopeKey, setScopeKey] = useState(authorId);
+  if (scopeKey !== authorId) {
+    setScopeKey(authorId);
+    setSkip(0);
+  }
 
-    setIsLoading(true);
-    setError(null);
+  const loadPRs = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      if (!projectId) return;
 
-    try {
-      const status = statusFilter === "all" ? undefined : statusFilter;
-      const response = await pullRequestsApi.list(
-        projectId,
-        accessToken,
-        status,
-        undefined,
-        skip,
-        limit
-      );
-      setPrs(response.items);
-      setTotal(response.total);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load pull requests";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectId, accessToken, statusFilter, skip]);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const status = statusFilter === "all" ? undefined : statusFilter;
+        const response = await pullRequestsApi.list(
+          projectId,
+          accessToken,
+          status,
+          authorId,
+          skip,
+          limit
+        );
+        // A slower request for a previous scope must not overwrite the newer one.
+        if (signal?.cancelled) return;
+        setPrs(response.items);
+        setTotal(response.total);
+      } catch (err) {
+        if (signal?.cancelled) return;
+        const message =
+          err instanceof Error ? err.message : "Failed to load pull requests";
+        setError(message);
+      } finally {
+        if (!signal?.cancelled) setIsLoading(false);
+      }
+    },
+    [projectId, accessToken, statusFilter, authorId, skip]
+  );
 
   useEffect(() => {
-    loadPRs();
+    const signal = { cancelled: false };
+    loadPRs(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadPRs]);
 
   const handleStatusChange = (newStatus: PRStatus | "all") => {
@@ -67,10 +96,39 @@ export function PRList({
     setSkip(0);
   };
 
+  // The list is either scoped to the signed-in user (authorId set) or shows the
+  // whole project, so the empty state has to speak in the matching voice —
+  // "You have no…" vs "There are no…".
+  const isScopedToViewer = !!authorId;
+  const noun = isSuggestionMode ? "suggestion" : "pull request";
+  const emptyStateMessage = (() => {
+    if (statusFilter === "open") {
+      return isScopedToViewer
+        ? `You have no open ${noun}s.`
+        : `There are no open ${noun}s for this project.`;
+    }
+    if (statusFilter === "merged") {
+      const verb = isSuggestionMode ? "accepted" : "merged";
+      return isScopedToViewer
+        ? `None of your ${noun}s have been ${verb} yet.`
+        : `No ${noun}s have been ${verb} yet.`;
+    }
+    if (statusFilter === "closed") {
+      const verb = isSuggestionMode ? "rejected" : "closed";
+      return isScopedToViewer
+        ? `None of your ${noun}s have been ${verb}.`
+        : `No ${noun}s have been ${verb}.`;
+    }
+    const verb = isSuggestionMode ? "submitted" : "created";
+    return isScopedToViewer
+      ? `You have not ${verb} any ${noun}s yet.`
+      : `No ${noun}s have been ${verb} for this project.`;
+  })();
+
   const statusTabs: { value: PRStatus | "all"; label: string }[] = [
     { value: "open", label: "Open" },
-    { value: "merged", label: "Merged" },
-    { value: "closed", label: "Closed" },
+    { value: "merged", label: isSuggestionMode ? "Accepted" : "Merged" },
+    { value: "closed", label: isSuggestionMode ? "Rejected" : "Closed" },
     { value: "all", label: "All" },
   ];
 
@@ -96,7 +154,7 @@ export function PRList({
         </div>
 
         <span className="text-sm text-slate-500">
-          {total} pull request{total !== 1 ? "s" : ""}
+          {total} {total === 1 ? noun : `${noun}s`}
         </span>
       </div>
 
@@ -111,26 +169,22 @@ export function PRList({
         </div>
       ) : prs.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-12 text-center dark:border-slate-700 dark:bg-slate-800/50">
-          <GitPullRequest className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+          {isSuggestionMode ? (
+            <Lightbulb className="mx-auto h-12 w-12 text-amber-300 dark:text-amber-600/60" />
+          ) : (
+            <GitPullRequest className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+          )}
           <h3 className="mt-4 font-medium text-slate-900 dark:text-slate-100">
-            No pull requests
+            {isSuggestionMode ? "No suggestions" : "No pull requests"}
           </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            {statusFilter === "open"
-              ? "There are no open pull requests for this project."
-              : statusFilter === "merged"
-              ? "No pull requests have been merged yet."
-              : statusFilter === "closed"
-              ? "No pull requests have been closed."
-              : "No pull requests have been created for this project."}
-          </p>
+          <p className="mt-1 text-sm text-slate-500">{emptyStateMessage}</p>
         </div>
       ) : (
         <>
           {/* PR List */}
           <div className="space-y-3">
             {prs.map((pr) => (
-              <PRListItem key={pr.id} pr={pr} projectId={projectId} />
+              <PRListItem key={pr.id} pr={pr} projectId={projectId} mode={mode} />
             ))}
           </div>
 
